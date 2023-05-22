@@ -1038,10 +1038,22 @@ class VIEW3D_MT_transform_base:
     # TODO: get rid of the custom text strings?
     def draw(self, context):
         layout = self.layout
+        allow_navigation = getattr(
+            context.window_manager.keyconfigs.active.preferences,
+            "use_transform_navigation",
+            False)
 
-        layout.operator("transform.translate")
-        layout.operator("transform.rotate")
-        layout.operator("transform.resize", text="Scale")
+        props = layout.operator("transform.translate")
+        props.release_confirm = False
+        props.allow_navigation = allow_navigation
+
+        props = layout.operator("transform.rotate")
+        props.release_confirm = False
+        props.allow_navigation = allow_navigation
+
+        props = layout.operator("transform.resize", text="Scale")
+        props.release_confirm = False
+        props.allow_navigation = allow_navigation
 
         layout.separator()
 
@@ -8119,6 +8131,26 @@ class VIEW3D_PT_viewport_debug(Panel):
         layout.prop(overlay, "use_debug_freeze_view_culling")
 
 
+class VIEW3D_AST_sculpt_brushes(bpy.types.AssetShelf):
+    # Experimental: Asset shelf for sculpt brushes, only shows up if both the
+    # "Asset Shelf" and the "Extended Asset Browser" experimental features are
+    # enabled.
+
+    bl_space_type = "VIEW_3D"
+
+    @classmethod
+    def poll(cls, context):
+        prefs = context.preferences
+        if not prefs.experimental.use_extended_asset_browser:
+            return False
+
+        return bool(context.object and context.object.mode == 'SCULPT')
+
+    @classmethod
+    def asset_poll__(cls, asset):
+        return asset.file_data.id_type == 'BRUSH'
+
+
 classes = (
     VIEW3D_HT_header,
     VIEW3D_HT_tool_header,
@@ -8361,6 +8393,7 @@ classes = (
     VIEW3D_PT_curves_sculpt_parameter_falloff,
     VIEW3D_PT_curves_sculpt_grow_shrink_scaling,
     VIEW3D_PT_viewport_debug,
+    VIEW3D_AST_sculpt_brushes,
 )
 
 
