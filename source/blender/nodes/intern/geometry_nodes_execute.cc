@@ -6,10 +6,7 @@
 
 #include "NOD_geometry_nodes_execute.hh"
 #include "NOD_geometry_nodes_lazy_function.hh"
-// #include "NOD_multi_function.hh"
 #include "NOD_node_declaration.hh"
-
-// #include "DNA_ID.h"
 
 #include "BKE_compute_contexts.hh"
 #include "BKE_geometry_fields.hh"
@@ -20,9 +17,6 @@
 
 #include "FN_field_cpp_type.hh"
 #include "FN_lazy_function_execute.hh"
-// #include "FN_lazy_function_graph_executor.hh"
-
-// #include "DEG_depsgraph_query.h"
 
 namespace lf = blender::fn::lazy_function;
 namespace geo_log = blender::nodes::geo_eval_log;
