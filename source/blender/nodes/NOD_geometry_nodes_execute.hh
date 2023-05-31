@@ -30,6 +30,7 @@
 struct bNodeTree;
 struct bNodeSocket;
 struct Depsgraph;
+struct GeometrySet;
 struct IDProperty;
 struct Object;
 namespace blender::nodes {

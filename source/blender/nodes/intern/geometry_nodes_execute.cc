@@ -2,41 +2,27 @@
 
 /** \file
  * \ingroup nodes
- *
- * This file mainly converts a #bNodeTree into a lazy-function graph. This generally works by
- * creating a lazy-function for every node, which is then put into the lazy-function graph. Then
- * the nodes in the new graph are linked based on links in the original #bNodeTree. Some additional
- * nodes are inserted for things like type conversions and multi-input sockets.
- *
- * Currently, lazy-functions are even created for nodes that don't strictly require it, like
- * reroutes or muted nodes. In the future we could avoid that at the cost of additional code
- * complexity. So far, this does not seem to be a performance issue.
  */
 
-#include "NOD_geometry_exec.hh"
 #include "NOD_geometry_nodes_execute.hh"
 #include "NOD_geometry_nodes_lazy_function.hh"
-#include "NOD_multi_function.hh"
+// #include "NOD_multi_function.hh"
 #include "NOD_node_declaration.hh"
 
-#include "BLI_cpp_types.hh"
-#include "BLI_dot_export.hh"
-#include "BLI_hash.h"
-#include "BLI_lazy_threading.hh"
-#include "BLI_map.hh"
-
-#include "DNA_ID.h"
+// #include "DNA_ID.h"
 
 #include "BKE_compute_contexts.hh"
+#include "BKE_geometry_fields.hh"
 #include "BKE_geometry_set.hh"
 #include "BKE_idprop.hh"
+#include "BKE_node_runtime.hh"
 #include "BKE_type_conversions.hh"
 
 #include "FN_field_cpp_type.hh"
 #include "FN_lazy_function_execute.hh"
-#include "FN_lazy_function_graph_executor.hh"
+// #include "FN_lazy_function_graph_executor.hh"
 
-#include "DEG_depsgraph_query.h"
+// #include "DEG_depsgraph_query.h"
 
 namespace lf = blender::fn::lazy_function;
 namespace geo_log = blender::nodes::geo_eval_log;
