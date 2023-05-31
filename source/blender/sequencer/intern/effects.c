@@ -1,7 +1,8 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2001-2002 NaN Holding BV. All rights reserved.
- *           2003-2009 Blender Foundation.
- *           2005-2006 Peter Schlaile <peter [at] schlaile [dot] de> */
+/* SPDX-FileCopyrightText: 2001-2002 NaN Holding BV. All rights reserved.
+ * SPDX-FileCopyrightText: 2003-2009 Blender Foundation.
+ * SPDX-FileCopyrightText: 2005-2006 Peter Schlaile <peter [at] schlaile [dot] de>
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup bke
@@ -511,7 +512,6 @@ static void do_cross_effect(const SeqRenderData *context,
 /** \name Gamma Cross
  * \{ */
 
-/* copied code from initrender.c */
 static ushort gamtab[65536];
 static ushort igamtab1[256];
 static bool gamma_tabs_init = false;
@@ -916,7 +916,7 @@ static void do_sub_effect(const SeqRenderData *context,
 /** \name Drop Effect
  * \{ */
 
-/* Must be > 0 or add precopy, etc to the function */
+/* Must be > 0 or add pre-copy, etc to the function. */
 #define XOFF 8
 #define YOFF 8
 
@@ -1980,7 +1980,7 @@ static void RVBlurBitmap2_float(float *map, int width, int height, float blur, i
     return;
   }
 
-  /* Allocate memory for the tempmap and the blur filter matrix */
+  /* Allocate memory for the temp-map and the blur filter matrix. */
   temp = MEM_mallocN(sizeof(float[4]) * width * height, "blurbitmaptemp");
   if (!temp) {
     return;

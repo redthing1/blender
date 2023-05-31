@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup RNA
@@ -4738,7 +4740,7 @@ static const EnumPropertyItem node_flip_items[] = {
 static const EnumPropertyItem node_ycc_items[] = {
     {0, "ITUBT601", 0, "ITU 601", ""},
     {1, "ITUBT709", 0, "ITU 709", ""},
-    {2, "JFIF", 0, "Jpeg", ""},
+    {2, "JFIF", 0, "JPEG", ""},
     {0, NULL, 0, NULL, NULL},
 };
 

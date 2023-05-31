@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 #pragma once
 
@@ -765,17 +767,5 @@ template<typename T> class MutableSpan {
     return MutableSpan<NewT>(reinterpret_cast<NewT *>(data_), new_size);
   }
 };
-
-/** This is defined here, because in `BLI_index_range.hh` `Span` is not yet defined. */
-inline Span<int64_t> IndexRange::as_span() const
-{
-  const int64_t min_required_size = start_ + size_;
-  const int64_t current_array_size = s_current_array_size.load(std::memory_order_acquire);
-  const int64_t *current_array = s_current_array.load(std::memory_order_acquire);
-  if (min_required_size <= current_array_size) {
-    return Span<int64_t>(current_array + start_, size_);
-  }
-  return this->as_span_internal();
-}
 
 } /* namespace blender */

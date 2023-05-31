@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 #pragma once
 
@@ -33,9 +35,6 @@
  *
  * Ideally this could be could be even closer to Python's enumerate(). We might get that in the
  * future with newer C++ versions.
- *
- * One other important feature is the as_span method. This method returns a Span<int64_t>
- * that contains the interval as individual numbers.
  */
 
 #include <algorithm>
@@ -325,22 +324,11 @@ class IndexRange {
     return IndexRange(start_ + n, size_);
   }
 
-  /**
-   * Get read-only access to a memory buffer that contains the range as actual numbers.
-   */
-  Span<int64_t> as_span() const;
-
   friend std::ostream &operator<<(std::ostream &stream, IndexRange range)
   {
     stream << "[" << range.start() << ", " << range.one_after_last() << ")";
     return stream;
   }
-
- private:
-  static std::atomic<int64_t> s_current_array_size;
-  static std::atomic<int64_t *> s_current_array;
-
-  Span<int64_t> as_span_internal() const;
 };
 
 struct AlignedIndexRanges {

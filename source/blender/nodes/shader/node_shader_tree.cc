@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2007 Blender Foundation */
+/* SPDX-FileCopyrightText: 2007 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup nodes
@@ -820,7 +821,7 @@ static void ntree_shader_weight_tree_invert(bNodeTree *ntree, bNode *output_node
   /* Recreate links between copied nodes. */
   LISTBASE_FOREACH (bNode *, node, &ntree->nodes) {
     if (node->runtime->tmp_flag >= 0) {
-      /* Naming can be confusing here. We use original nodelink name for from/to prefix.
+      /* Naming can be confusing here. We use original node-link name for from/to prefix.
        * The final link is in reversed order. */
       int socket_index;
       LISTBASE_FOREACH_INDEX (bNodeSocket *, sock, &node->inputs, socket_index) {

@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2001-2002 NaN Holding BV. All rights reserved. */
+/* SPDX-FileCopyrightText: 2001-2002 NaN Holding BV. All rights reserved.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup DNA
@@ -182,8 +183,8 @@ typedef struct Panel {
  * There are 16 defines because the expansion data is typically stored in a short.
  *
  * \note Expansion for instanced panels is stored in depth first order. For example, the value of
- * UI_SUBPANEL_DATA_EXPAND_2 correspond to mean the expansion of the second subpanel or the first
- * subpanel's first subpanel.
+ * UI_SUBPANEL_DATA_EXPAND_2 correspond to mean the expansion of the second sub-panel or the first
+ * sub-panel's first sub-panel.
  */
 typedef enum uiPanelDataExpansion {
   UI_PANEL_DATA_EXPAND_ROOT = (1 << 0),
@@ -762,6 +763,9 @@ typedef struct AssetShelfSettings {
   ListBase enabled_catalog_paths; /* #LinkData */
   /** If not set (null or empty string), all assets will be displayed ("All" catalog behavior). */
   const char *active_catalog_path;
+
+  /** For filtering assets displayed in the asset view. */
+  char search_string[64];
 
   short display_flag; /* #AssetShelfSettings_DisplayFlag */
   char _pad1[6];

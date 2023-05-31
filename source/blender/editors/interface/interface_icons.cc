@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2001-2002 NaN Holding BV. All rights reserved. */
+/* SPDX-FileCopyrightText: 2001-2002 NaN Holding BV. All rights reserved.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup edinterface
@@ -2459,6 +2460,8 @@ int UI_icon_from_idcode(const int idcode)
     case ID_SIM:
       /* TODO: Use correct icon. */
       return ICON_PHYSICS;
+    case ID_GP:
+      return ICON_OUTLINER_DATA_GREASEPENCIL;
 
     /* No icons for these ID-types. */
     case ID_LI:

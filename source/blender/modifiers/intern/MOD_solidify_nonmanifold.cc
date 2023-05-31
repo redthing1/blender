@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup modifiers
@@ -1446,7 +1448,7 @@ Mesh *MOD_solidify_nonmanifold_modifyMesh(ModifierData *md,
             if (smd->nonmanifold_offset_mode == MOD_SOLIDIFY_NONMANIFOLD_OFFSET_MODE_CONSTRAINTS) {
               NewEdgeRef *first_edge = nullptr;
               NewEdgeRef **edge_ptr = g->edges;
-              /* Contains normal and offset [nx, ny, nz, ofs]. */
+              /* Contains normal and offset `[nx, ny, nz, ofs]`. */
               float(*planes_queue)[4] = static_cast<float(*)[4]>(
                   MEM_malloc_arrayN(g->edges_len + 1, sizeof(*planes_queue), __func__));
               uint queue_index = 0;

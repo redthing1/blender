@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 #pragma once
 
@@ -34,6 +36,19 @@
 #include "BLI_index_range.hh"
 #include "BLI_lazy_threading.hh"
 #include "BLI_utildefines.h"
+
+namespace blender {
+
+/**
+ * Wrapper type around an integer to differentiate it from other parameters in a function call.
+ */
+struct GrainSize {
+  int64_t value;
+
+  explicit constexpr GrainSize(const int64_t grain_size) : value(grain_size) {}
+};
+
+}  // namespace blender
 
 namespace blender::threading {
 

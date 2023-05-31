@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2008 Blender Foundation */
+/* SPDX-FileCopyrightText: 2008 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup edobj
@@ -164,6 +165,18 @@ void COLLECTION_OT_objects_remove_all(struct wmOperatorType *ot);
 void COLLECTION_OT_objects_remove(struct wmOperatorType *ot);
 void COLLECTION_OT_objects_add_active(struct wmOperatorType *ot);
 void COLLECTION_OT_objects_remove_active(struct wmOperatorType *ot);
+
+/* object_light_linking_ops.cc */
+
+void OBJECT_OT_light_linking_receiver_collection_new(struct wmOperatorType *ot);
+void OBJECT_OT_light_linking_receivers_select(struct wmOperatorType *ot);
+void OBJECT_OT_light_linking_receivers_link(struct wmOperatorType *ot);
+
+void OBJECT_OT_light_linking_blocker_collection_new(struct wmOperatorType *ot);
+void OBJECT_OT_light_linking_blockers_select(struct wmOperatorType *ot);
+void OBJECT_OT_light_linking_blockers_link(struct wmOperatorType *ot);
+
+void OBJECT_OT_light_linking_unlink_from_collection(struct wmOperatorType *ot);
 
 /* object_modifier.c */
 

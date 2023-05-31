@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2001-2002 NaN Holding BV. All rights reserved. */
+/* SPDX-FileCopyrightText: 2001-2002 NaN Holding BV. All rights reserved.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup imbuf
@@ -43,6 +44,7 @@
 #include "../blenlib/BLI_sys_types.h"
 #include "../gpu/GPU_texture.h"
 
+#include "BLI_implicit_sharing.h"
 #include "IMB_imbuf_types.h"
 
 #ifdef __cplusplus
@@ -148,23 +150,46 @@ struct ImBuf *IMB_allocFromBuffer(const uint8_t *byte_buffer,
                                   unsigned int h,
                                   unsigned int channels);
 
-/* Assign the content of the corresponding buffer with the given data and ownership.
+/**
+ * Assign the content of the corresponding buffer using an implicitly shareable data pointer.
+ *
+ * \note Does not modify the topology (width, height, number of channels)
+ * or the mipmaps in any way.
+ */
+void IMB_assign_shared_byte_buffer(struct ImBuf *ibuf,
+                                   uint8_t *buffer_data,
+                                   const ImplicitSharingInfoHandle *implicit_sharing);
+void IMB_assign_shared_float_buffer(struct ImBuf *ibuf,
+                                    float *buffer_data,
+                                    const ImplicitSharingInfoHandle *implicit_sharing);
+void IMB_assign_shared_float_z_buffer(struct ImBuf *ibuf,
+                                      float *buffer_data,
+                                      const ImplicitSharingInfoHandle *implicit_sharing);
+
+/**
+ * Assign the content of the corresponding buffer with the given data and ownership.
  * The current content of the buffer is released corresponding to its ownership configuration.
  *
- * NOTE: Does not modify the the topology (width, height, number of channels) or the mipmaps in any
- * way. */
+ * \note Does not modify the topology (width, height, number of channels)
+ * or the mipmaps in any way.
+ */
 void IMB_assign_byte_buffer(struct ImBuf *ibuf, uint8_t *buffer_data, ImBufOwnership ownership);
 void IMB_assign_float_buffer(struct ImBuf *ibuf, float *buffer_data, ImBufOwnership ownership);
 void IMB_assign_z_buffer(struct ImBuf *ibuf, int *buffer_data, ImBufOwnership ownership);
 void IMB_assign_float_z_buffer(struct ImBuf *ibuf, float *buffer_data, ImBufOwnership ownership);
 
-/* Make corresponding buffers available for modification.
- * Is achieved by ensuring that the given ImBuf is the only owner of the underlying buffer data. */
+/**
+ * Make corresponding buffers available for modification.
+ * Is achieved by ensuring that the given ImBuf is the only owner of the underlying buffer data.
+ */
 void IMB_make_writable_byte_buffer(struct ImBuf *ibuf);
 void IMB_make_writable_float_buffer(struct ImBuf *ibuf);
 
-/* Steal the buffer data pointer: the ImBuf is no longer an owner of this data.
- * NOTE: If the ImBuf does not own the data the behavior is undefined. */
+/**
+ * Steal the buffer data pointer: the ImBuf is no longer an owner of this data.
+ * \note If the ImBuf does not own the data the behavior is undefined.
+ * \note Stealing encoded buffer resets the encoded size.
+ */
 uint8_t *IMB_steal_byte_buffer(struct ImBuf *ibuf);
 float *IMB_steal_float_buffer(struct ImBuf *ibuf);
 uint8_t *IMB_steal_encoded_buffer(struct ImBuf *ibuf);

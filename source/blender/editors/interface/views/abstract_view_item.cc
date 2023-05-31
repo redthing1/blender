@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup edinterface
@@ -160,6 +162,27 @@ void AbstractViewItem::add_rename_button(uiBlock &block)
 void AbstractViewItem::build_context_menu(bContext & /*C*/, uiLayout & /*column*/) const
 {
   /* No context menu by default. */
+}
+
+/** \} */
+
+/* ---------------------------------------------------------------------- */
+/** \name Filtering
+ * \{ */
+
+bool AbstractViewItem::is_filtered_visible() const
+{
+  return true;
+}
+
+bool AbstractViewItem::is_filtered_visible_cached() const
+{
+  if (is_filtered_visible_.has_value()) {
+    return *is_filtered_visible_;
+  }
+
+  is_filtered_visible_ = is_filtered_visible();
+  return *is_filtered_visible_;
 }
 
 /** \} */

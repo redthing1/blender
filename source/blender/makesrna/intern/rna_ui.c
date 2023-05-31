@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup RNA
@@ -2142,6 +2144,12 @@ static void rna_def_asset_shelf(BlenderRNA *brna)
       prop,
       "Show Names",
       "Show the asset name together with the preview. Otherwise only the preview will be visible");
+  RNA_def_property_update(prop, NC_SPACE | ND_SPACE_ASSET_SHELF, NULL);
+
+  prop = RNA_def_property(srna, "search_filter", PROP_STRING, PROP_NONE);
+  RNA_def_property_string_sdna(prop, NULL, "settings.search_string");
+  RNA_def_property_ui_text(prop, "Display Filter", "Filter assets by name");
+  RNA_def_property_flag(prop, PROP_TEXTEDIT_UPDATE);
   RNA_def_property_update(prop, NC_SPACE | ND_SPACE_ASSET_SHELF, NULL);
 }
 

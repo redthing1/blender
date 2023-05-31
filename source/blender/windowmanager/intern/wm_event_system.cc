@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2007 Blender Foundation */
+/* SPDX-FileCopyrightText: 2007 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup wm
@@ -4526,7 +4527,7 @@ static void wm_event_get_keymap_from_toolsystem_ex(wmWindowManager *wm,
 {
   memset(km_result, 0x0, sizeof(*km_result));
 
-  const char *keymap_id_list[ARRAY_SIZE(km_result->keymaps)];
+  const char *keymap_id_list[BOUNDED_ARRAY_TYPE_SIZE<decltype(km_result->keymaps)>()];
   int keymap_id_list_len = 0;
 
   /* NOTE(@ideasman42): If `win` is nullptr, this function may not behave as expected.
