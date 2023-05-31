@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2005 Blender Foundation */
+/* SPDX-FileCopyrightText: 2005 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup DNA
@@ -2431,7 +2432,6 @@ typedef enum GeometryNodeDeleteGeometryMode {
   GEO_NODE_DELETE_GEOMETRY_MODE_EDGE_FACE = 1,
   GEO_NODE_DELETE_GEOMETRY_MODE_ONLY_FACE = 2,
 } GeometryNodeDeleteGeometryMode;
-
 
 typedef enum GeometryNodeScaleElementsMode {
   GEO_NODE_SCALE_ELEMENTS_UNIFORM = 0,

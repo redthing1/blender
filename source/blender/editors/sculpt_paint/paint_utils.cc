@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2001-2002 NaN Holding BV. All rights reserved. */
+/* SPDX-FileCopyrightText: 2001-2002 NaN Holding BV. All rights reserved.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup edsculpt
@@ -33,6 +34,7 @@
 #include "BKE_material.h"
 #include "BKE_mesh.h"
 #include "BKE_mesh_runtime.h"
+#include "BKE_object.h"
 #include "BKE_paint.h"
 #include "BKE_report.h"
 
@@ -235,8 +237,8 @@ static void imapaint_tri_weights(float matrix[4][4],
   h[1] = (co[1] - view[1]) * 2.0f / view[3] - 1.0f;
   h[2] = 1.0f;
 
-  /* solve for (w1,w2,w3)/perspdiv in:
-   * h * perspdiv = Project * Model * (w1 * v1 + w2 * v2 + w3 * v3) */
+  /* Solve for `(w1,w2,w3)/perspdiv` in:
+   * `h * perspdiv = Project * Model * (w1 * v1 + w2 * v2 + w3 * v3)`. */
 
   wmat[0][0] = pv1[0];
   wmat[1][0] = pv2[0];
@@ -253,7 +255,7 @@ static void imapaint_tri_weights(float matrix[4][4],
 
   copy_v3_v3(w, h);
 
-  /* w is still divided by perspdiv, make it sum to one */
+  /* w is still divided by `perspdiv`, make it sum to one */
   divw = w[0] + w[1] + w[2];
   if (divw != 0.0f) {
     mul_v3_fl(w, 1.0f / divw);
@@ -261,8 +263,12 @@ static void imapaint_tri_weights(float matrix[4][4],
 }
 
 /* compute uv coordinates of mouse in face */
-static void imapaint_pick_uv(
-    Mesh *me_eval, Scene *scene, Object *ob_eval, uint faceindex, const int xy[2], float uv[2])
+static void imapaint_pick_uv(const Mesh *me_eval,
+                             Scene *scene,
+                             Object *ob_eval,
+                             uint faceindex,
+                             const int xy[2],
+                             float uv[2])
 {
   int i, findex;
   float p[2], w[3], absw, minabsw;
@@ -406,7 +412,7 @@ void paint_sample_color(
       CustomData_MeshMasks cddata_masks = CD_MASK_BAREMESH;
       cddata_masks.pmask |= CD_MASK_ORIGINDEX;
       Mesh *me = (Mesh *)ob->data;
-      Mesh *me_eval = mesh_get_eval_final(depsgraph, scene, ob_eval, &cddata_masks);
+      const Mesh *me_eval = BKE_object_get_evaluated_mesh(ob_eval);
       const int *material_indices = (const int *)CustomData_get_layer_named(
           &me_eval->pdata, CD_PROP_INT32, "material_index");
 

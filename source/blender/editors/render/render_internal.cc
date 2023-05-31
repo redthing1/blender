@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2008 Blender Foundation */
+/* SPDX-FileCopyrightText: 2008 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup edrend
@@ -207,11 +208,11 @@ static void image_buffer_rect_update(RenderJob *rj,
     rv = RE_RenderViewGetById(rr, view_id);
 
     /* find current float rect for display, first case is after composite... still weak */
-    if (rv->rectf) {
-      rectf = rv->rectf;
+    if (rv->combined_buffer.data) {
+      rectf = rv->combined_buffer.data;
     }
     else {
-      if (rv->rect32) {
+      if (rv->byte_buffer.data) {
         /* special case, currently only happens with sequencer rendering,
          * which updates the whole frame, so we can only mark display buffer
          * as invalid here (sergey)

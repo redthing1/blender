@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2008 Blender Foundation */
+/* SPDX-FileCopyrightText: 2008 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup render
@@ -193,17 +194,9 @@ static void screen_opengl_views_setup(OGLRender *oglrender)
       RenderView *rv_del = rv->next;
       BLI_remlink(&rr->views, rv_del);
 
-      if (rv_del->rectf) {
-        MEM_freeN(rv_del->rectf);
-      }
-
-      if (rv_del->rectz) {
-        MEM_freeN(rv_del->rectz);
-      }
-
-      if (rv_del->rect32) {
-        MEM_freeN(rv_del->rect32);
-      }
+      RE_RenderBuffer_data_free(&rv_del->combined_buffer);
+      RE_RenderBuffer_data_free(&rv_del->z_buffer);
+      RE_RenderByteBuffer_data_free(&rv_del->byte_buffer);
 
       MEM_freeN(rv_del);
     }
@@ -227,17 +220,9 @@ static void screen_opengl_views_setup(OGLRender *oglrender)
 
         BLI_remlink(&rr->views, rv_del);
 
-        if (rv_del->rectf) {
-          MEM_freeN(rv_del->rectf);
-        }
-
-        if (rv_del->rectz) {
-          MEM_freeN(rv_del->rectz);
-        }
-
-        if (rv_del->rect32) {
-          MEM_freeN(rv_del->rect32);
-        }
+        RE_RenderBuffer_data_free(&rv_del->combined_buffer);
+        RE_RenderBuffer_data_free(&rv_del->z_buffer);
+        RE_RenderByteBuffer_data_free(&rv_del->byte_buffer);
 
         MEM_freeN(rv_del);
       }
@@ -651,6 +636,9 @@ static int gather_frames_to_render_for_id(LibraryIDLinkCallbackData *cb_data)
       /* In addition to regular ID's animdata, GreasePencil uses a specific frame-based animation
        * system that requires specific handling here. */
       gather_frames_to_render_for_grease_pencil(oglrender, (bGPdata *)id);
+      break;
+    case ID_GP:
+      /* TODO: gather frames. */
       break;
   }
 

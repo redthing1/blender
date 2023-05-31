@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2011 Blender Foundation */
+/* SPDX-FileCopyrightText: 2011 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup spclip
@@ -855,7 +856,7 @@ void uiTemplateMovieclipInformation(uiLayout *layout,
 
     if (framenr <= clip->len) {
       BKE_movieclip_filepath_for_frame(clip, user, filepath);
-      file = BLI_path_slash_rfind(filepath);
+      file = BLI_path_basename(filepath);
     }
     else {
       file = "-";

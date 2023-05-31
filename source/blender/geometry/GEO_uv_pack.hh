@@ -1,4 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-FileCopyrightText: 2023 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include "BLI_heap.h"
 #include "BLI_math_matrix.hh"
@@ -24,6 +26,17 @@ enum eUVPackIsland_MarginMethod {
   ED_UVPACK_MARGIN_ADD,
   /** Specify a precise fraction of final UV output. */
   ED_UVPACK_MARGIN_FRACTION,
+};
+
+enum eUVPackIsland_RotationMethod {
+  /** No rotation. */
+  ED_UVPACK_ROTATION_NONE = 0,
+  /** Rotated to a minimal rectangle, either vertical or horizontal. */
+  ED_UVPACK_ROTATION_AXIS_ALIGNED,
+  /** Only 90 degree rotations are allowed. */
+  ED_UVPACK_ROTATION_CARDINAL,
+  /** Any angle. */
+  ED_UVPACK_ROTATION_ANY,
 };
 
 enum eUVPackIsland_ShapeMethod {
@@ -57,8 +70,8 @@ class UVPackIsland_Params {
   void setUDIMOffsetFromSpaceImage(const SpaceImage *sima);
   bool isCancelled() const;
 
-  /** Islands can be rotated to improve packing. */
-  bool rotate;
+  /** Restrictions around island rotation. */
+  eUVPackIsland_RotationMethod rotate_method;
   /** Resize islands to fill the unit square. */
   bool scale_to_fit;
   /** (In UV Editor) only pack islands which have one or more selected UVs. */
@@ -81,6 +94,8 @@ class UVPackIsland_Params {
   eUVPackIsland_MarginMethod margin_method;
   /** Additional translation for bottom left corner. */
   float udim_base_offset[2];
+  /** Target vertical extent. Should be 1.0f for the unit square. */
+  float target_extent;
   /** Target aspect ratio. */
   float target_aspect_y;
   /** Which shape to use when packing. */

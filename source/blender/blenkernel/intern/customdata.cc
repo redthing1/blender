@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2006 Blender Foundation */
+/* SPDX-FileCopyrightText: 2006 Blender Foundation
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
 
 /** \file
  * \ingroup bke
@@ -71,7 +72,8 @@ using blender::Vector;
 #define CUSTOMDATA_GROW 5
 
 /* ensure typemap size is ok */
-BLI_STATIC_ASSERT(ARRAY_SIZE(((CustomData *)nullptr)->typemap) == CD_NUMTYPES, "size mismatch");
+BLI_STATIC_ASSERT(BOUNDED_ARRAY_TYPE_SIZE<decltype(CustomData::typemap)>() == CD_NUMTYPES,
+                  "size mismatch");
 
 static CLG_LogRef LOG = {"bke.customdata"};
 
