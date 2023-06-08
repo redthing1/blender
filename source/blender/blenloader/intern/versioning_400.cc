@@ -14,7 +14,6 @@
 
 #include "DNA_genfile.h"
 #include "DNA_movieclip_types.h"
-#include "DNA_workspace_types.h"
 
 #include "BLI_assert.h"
 #include "BLI_listbase.h"
@@ -23,7 +22,6 @@
 #include "BKE_main.h"
 #include "BKE_mesh_legacy_convert.h"
 #include "BKE_node.hh"
-#include "BKE_screen.h"
 #include "BKE_tracking.h"
 
 #include "BLO_readfile.h"
@@ -34,9 +32,23 @@
 
 // static CLG_LogRef LOG = {"blo.readfile.doversion"};
 
-void do_versions_after_linking_400(FileData * /*fd*/, Main *bmain)
+void do_versions_after_linking_400(FileData * /*fd*/, Main * /*bmain*/)
 {
-  UNUSED_VARS(bmain);
+  /**
+   * Versioning code until next subversion bump goes here.
+   *
+   * \note Be sure to check when bumping the version:
+   * - #blo_do_versions_400 in this file.
+   * - "versioning_cycles.cc", #blo_do_versions_cycles
+   * - "versioning_cycles.cc", #do_versions_after_linking_cycles
+   * - "versioning_userdef.c", #blo_do_versions_userdef
+   * - "versioning_userdef.c", #do_versions_theme
+   *
+   * \note Keep this message at the bottom of the function.
+   */
+  {
+    /* Keep this block, even when empty. */
+  }
 }
 
 static void version_mesh_legacy_to_struct_of_array_format(Mesh &mesh)
@@ -106,6 +118,46 @@ static void version_geometry_nodes_add_realize_instance_nodes(bNodeTree *ntree)
   }
 }
 
+static void versioning_replace_legacy_glossy_node(bNodeTree *ntree)
+{
+  LISTBASE_FOREACH (bNode *, node, &ntree->nodes) {
+    if (node->type == SH_NODE_BSDF_GLOSSY_LEGACY) {
+      strcpy(node->idname, "ShaderNodeBsdfAnisotropic");
+      node->type = SH_NODE_BSDF_GLOSSY;
+    }
+  }
+}
+
+static void versioning_remove_microfacet_sharp_distribution(bNodeTree *ntree)
+{
+  /* Find all glossy, glass and refraction BSDF nodes that have their distribution
+   * set to SHARP and set them to GGX, disconnect any link to the Roughness input
+   * and set its value to zero. */
+  LISTBASE_FOREACH (bNode *, node, &ntree->nodes) {
+    if (!ELEM(node->type, SH_NODE_BSDF_GLOSSY, SH_NODE_BSDF_GLASS, SH_NODE_BSDF_REFRACTION)) {
+      continue;
+    }
+    if (node->custom1 != SHD_GLOSSY_SHARP_DEPRECATED) {
+      continue;
+    }
+
+    node->custom1 = SHD_GLOSSY_GGX;
+    LISTBASE_FOREACH (bNodeSocket *, socket, &node->inputs) {
+      if (!STREQ(socket->identifier, "Roughness")) {
+        continue;
+      }
+
+      if (socket->link != nullptr) {
+        nodeRemLink(ntree, socket->link);
+      }
+      bNodeSocketValueFloat *socket_value = (bNodeSocketValueFloat *)socket->default_value;
+      socket_value->value = 0.0f;
+
+      break;
+    }
+  }
+}
+
 void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
 {
   if (!MAIN_VERSION_ATLEAST(bmain, 400, 1)) {
@@ -129,16 +181,38 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     }
   }
 
+  /* 400 4 did not require any do_version here. */
+
+  if (!MAIN_VERSION_ATLEAST(bmain, 400, 5)) {
+    LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
+#define SCE_SNAP_PROJECT (1 << 3)
+      if (scene->toolsettings->snap_flag & SCE_SNAP_PROJECT) {
+        scene->toolsettings->snap_mode |= SCE_SNAP_MODE_FACE_RAYCAST;
+      }
+#undef SCE_SNAP_PROJECT
+    }
+  }
+
   /**
    * Versioning code until next subversion bump goes here.
    *
    * \note Be sure to check when bumping the version:
+   * - #do_versions_after_linking_400 in this file.
+   * - "versioning_cycles.cc", #blo_do_versions_cycles
+   * - "versioning_cycles.cc", #do_versions_after_linking_cycles
    * - "versioning_userdef.c", #blo_do_versions_userdef
    * - "versioning_userdef.c", #do_versions_theme
    *
    * \note Keep this message at the bottom of the function.
    */
   {
+    /* Convert anisotropic BSDF node to glossy BSDF. */
+    FOREACH_NODETREE_BEGIN (bmain, ntree, id) {
+      versioning_replace_legacy_glossy_node(ntree);
+      versioning_remove_microfacet_sharp_distribution(ntree);
+    }
+    FOREACH_NODETREE_END;
+
     /* Keep this block, even when empty. */
   }
 
@@ -156,54 +230,24 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
           ListBase *regionbase = (sl == area->spacedata.first) ? &area->regionbase :
                                                                  &sl->regionbase;
 
-          /* TODO for old files saved with the branch only. */
+          if (ARegion *new_asset_shelf_footer = do_versions_add_region_if_not_found(
+                  regionbase,
+                  RGN_TYPE_ASSET_SHELF_FOOTER,
+                  "asset shelf footer for view3d (versioning)",
+                  RGN_TYPE_UI))
           {
-            SpaceType *space_type = BKE_spacetype_from_id(sl->spacetype);
-
-            if (ARegion *asset_shelf = BKE_region_find_in_listbase_by_type(regionbase,
-                                                                           RGN_TYPE_ASSET_SHELF)) {
-              BLI_remlink(regionbase, asset_shelf);
-              BKE_area_region_free(space_type, asset_shelf);
-              MEM_freeN(asset_shelf);
-            }
-
-            if (ARegion *asset_shelf_footer = BKE_region_find_in_listbase_by_type(
-                    regionbase, RGN_TYPE_ASSET_SHELF_FOOTER))
-            {
-              BLI_remlink(regionbase, asset_shelf_footer);
-              BKE_area_region_free(space_type, asset_shelf_footer);
-              MEM_freeN(asset_shelf_footer);
-            }
+            new_asset_shelf_footer->alignment = RGN_ALIGN_BOTTOM;
           }
-
+          if (ARegion *new_asset_shelf = do_versions_add_region_if_not_found(
+                  regionbase,
+                  RGN_TYPE_ASSET_SHELF,
+                  "asset shelf for view3d (versioning)",
+                  RGN_TYPE_ASSET_SHELF_FOOTER))
           {
-            ARegion *new_asset_shelf_footer = do_versions_add_region_if_not_found(
-                regionbase,
-                RGN_TYPE_ASSET_SHELF_FOOTER,
-                "asset shelf footer for view3d (versioning)",
-                RGN_TYPE_UI);
-            if (new_asset_shelf_footer != nullptr) {
-              new_asset_shelf_footer->alignment = RGN_ALIGN_BOTTOM;
-            }
-          }
-          {
-            /* TODO for old files saved with the branch only. */
-            ARegion *new_asset_shelf = do_versions_add_region_if_not_found(
-                regionbase,
-                RGN_TYPE_ASSET_SHELF,
-                "asset shelf for view3d (versioning)",
-                RGN_TYPE_ASSET_SHELF_FOOTER);
             new_asset_shelf->alignment = RGN_ALIGN_BOTTOM;
           }
         }
       }
-    }
-
-    /* Should we really use the "All" library by default? Consider loading time and memory usage.
-     */
-    LISTBASE_FOREACH (WorkSpace *, workspace, &bmain->workspaces) {
-      workspace->asset_library_ref.type = ASSET_LIBRARY_ALL;
-      workspace->asset_library_ref.custom_library_index = -1;
     }
   }
 }

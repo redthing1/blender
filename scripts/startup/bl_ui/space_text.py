@@ -256,7 +256,13 @@ class TEXT_MT_text(Menu):
 
         if text:
             layout.separator()
-            layout.operator("text.reload")
+            row = layout.row()
+            row.operator("text.reload")
+            row.enabled = not text.is_in_memory
+
+            row = layout.row()
+            op = row.operator("text.jump_to_file_at_point", text="Edit Externally")
+            row.enabled = (not text.is_in_memory and context.preferences.filepaths.text_editor != "")
 
             layout.separator()
             layout.operator("text.save", icon='FILE_TICK')
@@ -278,12 +284,18 @@ class TEXT_MT_text(Menu):
 class TEXT_MT_templates_py(Menu):
     bl_label = "Python"
 
-    def draw(self, _context):
+    def draw(self, context):
+        prefs = context.preferences
+        use_asset_shelf = prefs.experimental.use_asset_shelf
+
         self.path_menu(
             bpy.utils.script_paths(subdir="templates_py"),
             "text.open",
             props_default={"internal": True},
             filter_ext=lambda ext: (ext.lower() == ".py"),
+            # Filter out asset shelf template depending on experimental "Asset Shelf" option.
+            filter_path=lambda path, use_asset_shelf=use_asset_shelf:
+                (use_asset_shelf or not path.endswith("ui_asset_shelf.py")),
         )
 
 

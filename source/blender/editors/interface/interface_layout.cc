@@ -3172,7 +3172,8 @@ void uiItemDecoratorR_prop(uiLayout *layout, PointerRNA *ptr, PropertyRNA *prop,
     /* Decorators have own RNA data, using the normal #uiBut RNA members has many side-effects. */
     but->decorated_rnapoin = *ptr;
     but->decorated_rnaprop = prop;
-    but->decorated_rnaindex = (!is_array) ? -1 : (is_expand) ? i : index;
+    /* ui_def_but_rna() sets non-array buttons to have a RNA index of 0. */
+    but->decorated_rnaindex = (!is_array || is_expand) ? i : index;
   }
 }
 
@@ -4102,7 +4103,7 @@ static void ui_litem_layout_box(uiLayout *litem)
   const uiStyle *style = litem->root->style;
 
   int boxspace = style->boxspace;
-  if (litem->root->type == UI_LAYOUT_HEADER && false) {
+  if (litem->root->type == UI_LAYOUT_HEADER) {
     boxspace = 0;
   }
 
@@ -5129,11 +5130,6 @@ int uiLayoutGetAlignment(uiLayout *layout)
 int uiLayoutGetWidth(uiLayout *layout)
 {
   return layout->w;
-}
-
-int uiLayoutGetRootHeight(uiLayout *layout)
-{
-  return layout->root->layout->h;
 }
 
 float uiLayoutGetScaleX(uiLayout *layout)

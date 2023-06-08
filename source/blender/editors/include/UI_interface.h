@@ -169,7 +169,6 @@ enum {
   UI_BLOCK_SEARCH_ONLY = 1 << 25,
   /** Hack for quick setup (splash screen) to draw text centered. */
   UI_BLOCK_QUICK_SETUP = 1 << 26,
-  UI_BLOCK_POPUP_CAN_REFRESH = 1 << 27,
 };
 
 /** #uiPopupBlockHandle.menuretval */
@@ -2180,7 +2179,6 @@ int uiLayoutGetAlignment(uiLayout *layout);
 bool uiLayoutGetFixedSize(uiLayout *layout);
 bool uiLayoutGetKeepAspect(uiLayout *layout);
 int uiLayoutGetWidth(uiLayout *layout);
-int uiLayoutGetRootHeight(uiLayout *layout);
 float uiLayoutGetScaleX(uiLayout *layout);
 float uiLayoutGetScaleY(uiLayout *layout);
 float uiLayoutGetUnitsX(uiLayout *layout);
@@ -2410,7 +2408,10 @@ void uiTemplateImage(uiLayout *layout,
                      struct PointerRNA *userptr,
                      bool compact,
                      bool multiview);
-void uiTemplateImageSettings(uiLayout *layout, struct PointerRNA *imfptr, bool color_management);
+void uiTemplateImageSettings(uiLayout *layout,
+                             struct PointerRNA *imfptr,
+                             bool color_management,
+                             bool show_z_buffer);
 void uiTemplateImageStereo3d(uiLayout *layout, struct PointerRNA *stereo3d_format_ptr);
 void uiTemplateImageViews(uiLayout *layout, struct PointerRNA *imaptr);
 void uiTemplateImageFormatViews(uiLayout *layout,
@@ -2618,9 +2619,6 @@ void uiTemplateAssetView(struct uiLayout *layout,
                          struct PointerRNA *r_activate_op_properties,
                          const char *drag_opname,
                          struct PointerRNA *r_drag_op_properties);
-void uiTemplateAssetShelf(uiLayout *layout,
-                          const struct bContext *C,
-                          const struct AssetFilterSettings *filter_settings);
 
 void uiTemplateLightLinkingCollection(struct uiLayout *layout,
                                       struct PointerRNA *ptr,
