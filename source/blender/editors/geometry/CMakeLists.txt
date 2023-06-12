@@ -10,6 +10,7 @@ set(INC
   ../../functions
   ../../makesdna
   ../../makesrna
+    ../../nodes
   ../../windowmanager
   ../../../../intern/guardedalloc
   ../../bmesh
@@ -21,6 +22,7 @@ set(INC_SYS
 set(SRC
   geometry_attributes.cc
   geometry_ops.cc
+  node_group_operator.cc
 
   geometry_intern.hh
 )

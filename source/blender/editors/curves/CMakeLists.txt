@@ -13,7 +13,6 @@ set(INC
   ../../gpu
   ../../makesdna
   ../../makesrna
-  ../../nodes
   ../../windowmanager
   ../../../../intern/clog
   ../../../../intern/guardedalloc
@@ -31,7 +30,6 @@ set(SRC
   intern/curves_ops.cc
   intern/curves_selection.cc
   intern/curves_undo.cc
-  intern/node_group_operator.cc
 )
 
 set(LIB
