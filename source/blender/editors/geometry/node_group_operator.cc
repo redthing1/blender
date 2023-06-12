@@ -218,6 +218,13 @@ static char *run_node_group_get_description(bContext *C, wmOperatorType * /*ot*/
   return nullptr;
 }
 
+static void run_node_group_ui(bContext *C, wmOperator *op)
+{
+  uiLayout *layout = op->layout;
+  uiDefAutoButsRNA(
+      layout, op->ptr, nullptr, nullptr, nullptr, UI_BUT_LABEL_ALIGN_SPLIT_COLUMN, false);
+}
+
 void GEOMETRY_OT_execute_node_group(wmOperatorType *ot)
 {
   ot->name = "Run Node Group";
@@ -227,6 +234,7 @@ void GEOMETRY_OT_execute_node_group(wmOperatorType *ot)
   ot->invoke = run_node_group_invoke;
   ot->exec = run_node_group_exec;
   ot->get_description = run_node_group_get_description;
+  ot->ui = run_node_group_ui;
 
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 
