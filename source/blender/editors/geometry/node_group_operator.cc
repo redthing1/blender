@@ -144,7 +144,7 @@ static int run_node_group_exec(bContext *C, wmOperator *op)
   Scene *scene = CTX_data_scene(C);
   ViewLayer *view_layer = CTX_data_view_layer(C);
   Object *active_object = CTX_data_active_object(C);
-  eObjectMode mode = active_object ? eObjectMode(object->mode) : OB_MODE_OBJECT;
+  eObjectMode mode = active_object ? eObjectMode(active_object->mode) : OB_MODE_OBJECT;
 
   const bNodeTree *node_tree = get_node_tree(*bmain, *op->ptr);
   if (!node_tree) {
