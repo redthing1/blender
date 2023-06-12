@@ -2100,7 +2100,7 @@ class VIEW3D_MT_edit_curves_select_more_less(Menu):
 class VIEW3D_MT_select_edit_curves(Menu):
     bl_label = "Select"
 
-    def draw(self, context):
+    def draw(self, _context):
         layout = self.layout
 
         layout.operator("curves.select_all", text="All").action = 'SELECT'
@@ -5481,7 +5481,7 @@ class VIEW3D_MT_edit_curves(Menu):
 
         layout.separator()
         for group in bpy.data.node_groups:
-            layout.operator("curves.node_group", text=group.name).name = group.name
+            layout.operator("geometry.execute_node_group", text=group.name).name = group.name
 
 
 class VIEW3D_MT_object_mode_pie(Menu):

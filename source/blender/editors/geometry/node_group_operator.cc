@@ -52,8 +52,8 @@ static const bNodeTree *get_node_tree(Main &bmain, PointerRNA &ptr)
 {
   char name[MAX_ID_NAME];
   RNA_string_get(&ptr, "name", name);
-  const ID *id = BKE_libblock_find_name(bmain, ID_NT, name);
-  bNodeTree *node_tree = reinterpret_cast<const bNodeTree *>(id);
+  const ID *id = BKE_libblock_find_name(&bmain, ID_NT, name);
+  const bNodeTree *node_tree = reinterpret_cast<const bNodeTree *>(id);
   if (!node_tree) {
     return nullptr;
   }
@@ -71,6 +71,7 @@ class OperatorComputeContext : public ComputeContext {
 
  public:
   OperatorComputeContext(std::string operator_name)
+      : ComputeContext(s_static_type, nullptr), operator_name_(std::move(operator_name))
   {
     hash_.mix_in(s_static_type, strlen(s_static_type));
     hash_.mix_in(operator_name_.data(), operator_name_.size());
@@ -148,7 +149,7 @@ static int run_node_group_exec(bContext *C, wmOperator *op)
 
   const bNodeTree *node_tree = get_node_tree(*bmain, *op->ptr);
   if (!node_tree) {
-    return;
+    return OPERATOR_CANCELLED;
   }
 
   const nodes::GeometryNodesLazyFunctionGraphInfo *lf_graph_info =
@@ -195,7 +196,7 @@ static int run_node_group_exec(bContext *C, wmOperator *op)
   return OPERATOR_FINISHED;
 }
 
-static int run_node_group_invoke(bContext *C, wmOperator *op, const wmEvent *event)
+static int run_node_group_invoke(bContext *C, wmOperator *op, const wmEvent * /*event*/)
 {
   const bNodeTree *node_tree = get_node_tree(*CTX_data_main(C), *op->ptr);
   if (!node_tree) {
@@ -212,7 +213,7 @@ static char *run_node_group_get_description(bContext *C, wmOperatorType * /*ot*/
 {
   const bNodeTree *node_tree = get_node_tree(*CTX_data_main(C), *ptr);
   if (!node_tree) {
-    return;
+    return nullptr;
   }
   return nullptr;
 }
