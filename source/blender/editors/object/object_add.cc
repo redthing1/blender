@@ -379,9 +379,7 @@ float ED_object_new_primitive_matrix(bContext *C,
 /** \name Add Object Operator
  * \{ */
 
-static void view_align_update(struct Main * /*main*/,
-                              struct Scene * /*scene*/,
-                              struct PointerRNA *ptr)
+static void view_align_update(Main * /*main*/, Scene * /*scene*/, PointerRNA *ptr)
 {
   RNA_struct_idprops_unset(ptr, "rotation");
 }
@@ -1643,7 +1641,16 @@ static int object_grease_pencil_add_exec(bContext *C, wmOperator *op)
       greasepencil::create_stroke(*bmain, *object, mat, scene->r.cfra);
       break;
     }
-    case GP_MONKEY:
+    case GP_MONKEY: {
+      const float radius = RNA_float_get(op->ptr, "radius");
+      const float3 scale(radius);
+
+      float4x4 mat;
+      ED_object_new_primitive_matrix(C, object, loc, rot, scale, mat.ptr());
+
+      greasepencil::create_suzanne(*bmain, *object, mat, scene->r.cfra);
+      break;
+    }
     case GP_LRT_OBJECT:
     case GP_LRT_SCENE:
     case GP_LRT_COLLECTION: {

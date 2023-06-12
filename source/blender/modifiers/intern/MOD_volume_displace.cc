@@ -86,7 +86,7 @@ static void foreachTexLink(ModifierData *md, Object *ob, TexWalkFunc walk, void 
   walk(userData, ob, md, "texture");
 }
 
-static bool dependsOnTime(struct Scene * /*scene*/, ModifierData *md)
+static bool dependsOnTime(Scene * /*scene*/, ModifierData *md)
 {
   VolumeDisplaceModifierData *vdmd = reinterpret_cast<VolumeDisplaceModifierData *>(md);
   if (vdmd->texture) {
@@ -170,8 +170,7 @@ template<typename GridType> struct DisplaceOp {
   openvdb::Vec3d evaluate_texture(const openvdb::Vec3f &pos) const
   {
     TexResult texture_result = {0};
-    BKE_texture_get_value(
-        nullptr, this->texture, const_cast<float *>(pos.asV()), &texture_result, false);
+    BKE_texture_get_value(this->texture, const_cast<float *>(pos.asV()), &texture_result, false);
     return {texture_result.trgba[0], texture_result.trgba[1], texture_result.trgba[2]};
   }
 };

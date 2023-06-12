@@ -322,7 +322,7 @@ static bool check_tree_for_time_node(const bNodeTree &tree, Set<const bNodeTree 
   return false;
 }
 
-static bool dependsOnTime(struct Scene * /*scene*/, ModifierData *md)
+static bool dependsOnTime(Scene * /*scene*/, ModifierData *md)
 {
   const NodesModifierData *nmd = reinterpret_cast<NodesModifierData *>(md);
   const bNodeTree *tree = nmd->node_group;
@@ -360,7 +360,7 @@ static void foreachTexLink(ModifierData *md, Object *ob, TexWalkFunc walk, void 
   walk(userData, ob, md, "texture");
 }
 
-static bool isDisabled(const struct Scene * /*scene*/, ModifierData *md, bool /*useRenderParams*/)
+static bool isDisabled(const Scene * /*scene*/, ModifierData *md, bool /*useRenderParams*/)
 {
   NodesModifierData *nmd = reinterpret_cast<NodesModifierData *>(md);
 
@@ -381,9 +381,6 @@ static bool logging_enabled(const ModifierEvalContext *ctx)
   }
   return true;
 }
-
-static const std::string use_attribute_suffix = "_use_attribute";
-static const std::string attribute_name_suffix = "_attribute_name";
 
 }  // namespace blender
 
@@ -726,6 +723,8 @@ static void modifyGeometry(ModifierData *md,
   if (nmd->node_group == nullptr) {
     return;
   }
+  NodesModifierData *nmd_orig = reinterpret_cast<NodesModifierData *>(
+      BKE_modifier_get_original(ctx->object, &nmd->modifier));
 
   const bNodeTree &tree = *nmd->node_group;
   tree.ensure_topology_cache();
@@ -769,37 +768,39 @@ static void modifyGeometry(ModifierData *md,
     use_orig_index_polys = CustomData_has_layer(&mesh->pdata, CD_ORIGINDEX);
   }
 
-  NodesModifierData *nmd_orig = reinterpret_cast<NodesModifierData *>(
-      BKE_modifier_get_original(ctx->object, &nmd->modifier));
-  delete static_cast<geo_log::GeoModifierLog *>(nmd_orig->runtime_eval_log);
-  if (logging_enabled(ctx)) {
-    nmd_orig->runtime_eval_log = new geo_log::GeoModifierLog();
-  }
-
-  bke::ModifierComputeContext modifier_compute_context{nullptr, nmd->modifier.name};
-
-  MultiValueMap<ComputeContextHash, const lf::FunctionNode *> side_effect_nodes;
-  Set<ComputeContextHash> socket_log_contexts;
   nodes::GeoNodesModifierData modifier_eval_data{};
   modifier_eval_data.depsgraph = ctx->depsgraph;
   modifier_eval_data.self_object = ctx->object;
-  modifier_eval_data.eval_log = static_cast<geo_log::GeoModifierLog *>(nmd_orig->runtime_eval_log);
-  if (modifier_eval_data.eval_log) {
-    find_side_effect_nodes(*nmd, *ctx, side_effect_nodes);
-    modifier_eval_data.side_effect_nodes = &side_effect_nodes;
-    find_socket_log_contexts(*nmd, *ctx, socket_log_contexts);
-    modifier_eval_data.socket_log_contexts = &socket_log_contexts;
-  }
+  auto eval_log = std::make_unique<geo_log::GeoModifierLog>();
 
   prepare_simulation_states_for_evaluation(*nmd, *nmd_orig, *ctx, modifier_eval_data);
 
-  geometry_set = nodes::execute_geometry_nodes(tree,
-                                               nmd->settings.properties,
-                                               modifier_compute_context,
-                                               std::move(geometry_set),
-                                               [&](nodes::GeoNodesLFUserData &user_data) {
-                                                 user_data.modifier_data = &modifier_eval_data;
-                                               });
+  Set<ComputeContextHash> socket_log_contexts;
+  if (logging_enabled(ctx)) {
+    modifier_eval_data.eval_log = eval_log.get();
+
+    find_socket_log_contexts(*nmd, *ctx, socket_log_contexts);
+    modifier_eval_data.socket_log_contexts = &socket_log_contexts;
+  }
+  MultiValueMap<ComputeContextHash, const lf::FunctionNode *> side_effect_nodes;
+  find_side_effect_nodes(*nmd, *ctx, side_effect_nodes);
+  modifier_eval_data.side_effect_nodes = &side_effect_nodes;
+
+  bke::ModifierComputeContext modifier_compute_context{nullptr, nmd->modifier.name};
+
+  geometry_set = nodes::execute_geometry_nodes_on_geometry(
+      tree,
+      nmd->settings.properties,
+      modifier_compute_context,
+      std::move(geometry_set),
+      [&](nodes::GeoNodesLFUserData &user_data) {
+        user_data.modifier_data = &modifier_eval_data;
+      });
+
+  if (logging_enabled(ctx)) {
+    delete static_cast<geo_log::GeoModifierLog *>(nmd_orig->runtime_eval_log);
+    nmd_orig->runtime_eval_log = eval_log.release();
+  }
 
   if (DEG_is_active(ctx->depsgraph)) {
     /* When caching is turned off, remove all states except the last which was just created in this
@@ -957,7 +958,8 @@ static void attribute_search_exec_fn(bContext *C, void *data_v, void *item_v)
     return;
   }
 
-  const std::string attribute_prop_name = data.socket_identifier + attribute_name_suffix;
+  const std::string attribute_prop_name = data.socket_identifier +
+                                          nodes::input_attribute_name_suffix();
   IDProperty &name_property = *IDP_GetPropertyFromGroup(nmd->settings.properties,
                                                         attribute_prop_name.c_str());
   IDP_AssignString(&name_property, item.name.c_str());
@@ -1039,9 +1041,9 @@ static void add_attribute_search_or_value_buttons(const bContext &C,
   BLI_str_escape(socket_id_esc, socket.identifier, sizeof(socket_id_esc));
   const std::string rna_path = "[\"" + std::string(socket_id_esc) + "\"]";
   const std::string rna_path_use_attribute = "[\"" + std::string(socket_id_esc) +
-                                             use_attribute_suffix + "\"]";
+                                             nodes::input_use_attribute_suffix() + "\"]";
   const std::string rna_path_attribute_name = "[\"" + std::string(socket_id_esc) +
-                                              attribute_name_suffix + "\"]";
+                                              nodes::input_attribute_name_suffix() + "\"]";
 
   /* We're handling this manually in this case. */
   uiLayoutSetPropDecorate(layout, false);
@@ -1164,7 +1166,7 @@ static void draw_property_for_output_socket(const bContext &C,
   char socket_id_esc[sizeof(socket.identifier) * 2];
   BLI_str_escape(socket_id_esc, socket.identifier, sizeof(socket_id_esc));
   const std::string rna_path_attribute_name = "[\"" + StringRef(socket_id_esc) +
-                                              attribute_name_suffix + "\"]";
+                                              nodes::input_attribute_name_suffix() + "\"]";
 
   uiLayout *split = uiLayoutSplit(layout, 0.4f, false);
   uiLayout *name_row = uiLayoutRow(split, false);

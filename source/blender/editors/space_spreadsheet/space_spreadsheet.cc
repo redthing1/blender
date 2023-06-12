@@ -182,7 +182,7 @@ static void spreadsheet_main_region_init(wmWindowManager *wm, ARegion *region)
   }
 }
 
-ID *ED_spreadsheet_get_current_id(const struct SpaceSpreadsheet *sspreadsheet)
+ID *ED_spreadsheet_get_current_id(const SpaceSpreadsheet *sspreadsheet)
 {
   if (BLI_listbase_is_empty(&sspreadsheet->viewer_path.path)) {
     return nullptr;
@@ -346,6 +346,7 @@ static float get_default_column_width(const ColumnValues &values)
       return 3.0f * float_width;
     case SPREADSHEET_VALUE_TYPE_COLOR:
     case SPREADSHEET_VALUE_TYPE_BYTE_COLOR:
+    case SPREADSHEET_VALUE_TYPE_QUATERNION:
       return 4.0f * float_width;
     case SPREADSHEET_VALUE_TYPE_INSTANCES:
       return 8.0f;

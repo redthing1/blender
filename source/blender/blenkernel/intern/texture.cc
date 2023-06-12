@@ -676,7 +676,7 @@ void BKE_texture_pointdensity_free(PointDensity *pd)
 }
 /* ------------------------------------------------------------------------- */
 
-bool BKE_texture_is_image_user(const struct Tex *tex)
+bool BKE_texture_is_image_user(const Tex *tex)
 {
   switch (tex->type) {
     case TEX_IMAGE: {
@@ -687,7 +687,7 @@ bool BKE_texture_is_image_user(const struct Tex *tex)
   return false;
 }
 
-bool BKE_texture_dependsOnTime(const struct Tex *texture)
+bool BKE_texture_dependsOnTime(const Tex *texture)
 {
   if (texture->ima && BKE_image_is_animated(texture->ima)) {
     return true;
@@ -705,22 +705,15 @@ bool BKE_texture_dependsOnTime(const struct Tex *texture)
 
 /* ------------------------------------------------------------------------- */
 
-void BKE_texture_get_value_ex(const Scene *scene,
-                              Tex *texture,
+void BKE_texture_get_value_ex(Tex *texture,
                               const float *tex_co,
                               TexResult *texres,
-                              struct ImagePool *pool,
+                              ImagePool *pool,
                               bool use_color_management)
 {
-  int result_type;
-  bool do_color_manage = false;
-
-  if (scene && use_color_management) {
-    do_color_manage = BKE_scene_check_color_management_enabled(scene);
-  }
-
   /* no node textures for now */
-  result_type = multitex_ext_safe(texture, tex_co, texres, pool, do_color_manage, false);
+  const int result_type = multitex_ext_safe(
+      texture, tex_co, texres, pool, use_color_management, false);
 
   /* if the texture gave an RGB value, we assume it didn't give a valid
    * intensity, since this is in the context of modifiers don't use perceptual color conversion.
@@ -734,18 +727,15 @@ void BKE_texture_get_value_ex(const Scene *scene,
   }
 }
 
-void BKE_texture_get_value(const Scene *scene,
-                           Tex *texture,
+void BKE_texture_get_value(Tex *texture,
                            const float *tex_co,
                            TexResult *texres,
                            bool use_color_management)
 {
-  BKE_texture_get_value_ex(scene, texture, tex_co, texres, nullptr, use_color_management);
+  BKE_texture_get_value_ex(texture, tex_co, texres, nullptr, use_color_management);
 }
 
-static void texture_nodes_fetch_images_for_pool(Tex *texture,
-                                                bNodeTree *ntree,
-                                                struct ImagePool *pool)
+static void texture_nodes_fetch_images_for_pool(Tex *texture, bNodeTree *ntree, ImagePool *pool)
 {
   for (bNode *node : ntree->all_nodes()) {
     if (node->type == SH_NODE_TEX_IMAGE && node->id != nullptr) {
@@ -760,7 +750,7 @@ static void texture_nodes_fetch_images_for_pool(Tex *texture,
   }
 }
 
-void BKE_texture_fetch_images_for_pool(Tex *texture, struct ImagePool *pool)
+void BKE_texture_fetch_images_for_pool(Tex *texture, ImagePool *pool)
 {
   if (texture->nodetree != nullptr) {
     texture_nodes_fetch_images_for_pool(texture, texture->nodetree, pool);

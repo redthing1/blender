@@ -107,7 +107,7 @@ static SpaceLink *file_create(const ScrArea *UNUSED(area), const Scene *UNUSED(s
   return (SpaceLink *)sfile;
 }
 
-/* not spacelink itself */
+/* Doesn't free the space-link itself. */
 static void file_free(SpaceLink *sl)
 {
   SpaceFile *sfile = (SpaceFile *)sl;
@@ -620,7 +620,7 @@ static void file_operatortypes(void)
 }
 
 /* NOTE: do not add .blend file reading on this level */
-static void file_keymap(struct wmKeyConfig *keyconf)
+static void file_keymap(wmKeyConfig *keyconf)
 {
   /* keys for all regions */
   WM_keymap_ensure(keyconf, "File Browser", SPACE_FILE, 0);

@@ -45,7 +45,7 @@ struct EdgeSort {
 };
 
 /* edges have to be added with lowest index first for sorting */
-static void to_edgesort(struct EdgeSort *ed, uint v1, uint v2, char is_loose, short is_draw)
+static void to_edgesort(EdgeSort *ed, uint v1, uint v2, char is_loose, short is_draw)
 {
   if (v1 < v2) {
     ed->v1 = v1;
@@ -61,8 +61,8 @@ static void to_edgesort(struct EdgeSort *ed, uint v1, uint v2, char is_loose, sh
 
 static int vergedgesort(const void *v1, const void *v2)
 {
-  const struct EdgeSort *x1 = static_cast<const struct EdgeSort *>(v1);
-  const struct EdgeSort *x2 = static_cast<const struct EdgeSort *>(v2);
+  const EdgeSort *x1 = static_cast<const EdgeSort *>(v1);
+  const EdgeSort *x2 = static_cast<const EdgeSort *>(v2);
 
   if (x1->v1 > x2->v1) {
     return 1;
@@ -97,7 +97,7 @@ static void mesh_calc_edges_mdata(const MVert * /*allvert*/,
   const MFace *mface;
   MEdge *edges, *edge;
   EdgeHash *hash;
-  struct EdgeSort *edsort, *ed;
+  EdgeSort *edsort, *ed;
   int a, totedge = 0;
   uint totedge_final = 0;
   uint edge_index;
@@ -123,7 +123,7 @@ static void mesh_calc_edges_mdata(const MVert * /*allvert*/,
     return;
   }
 
-  ed = edsort = (EdgeSort *)MEM_mallocN(totedge * sizeof(struct EdgeSort), "EdgeSort");
+  ed = edsort = (EdgeSort *)MEM_mallocN(totedge * sizeof(EdgeSort), "EdgeSort");
 
   for (a = totface, mface = allface; a > 0; a--, mface++) {
     to_edgesort(ed++, mface->v1, mface->v2, !mface->v3, mface->edcode & ME_V1V2);
@@ -138,7 +138,7 @@ static void mesh_calc_edges_mdata(const MVert * /*allvert*/,
     }
   }
 
-  qsort(edsort, totedge, sizeof(struct EdgeSort), vergedgesort);
+  qsort(edsort, totedge, sizeof(EdgeSort), vergedgesort);
 
   /* count final amount */
   for (a = totedge, ed = edsort; a > 1; a--, ed++) {
@@ -1178,7 +1178,7 @@ static int mesh_tessface_calc(Mesh &mesh,
 
   /* NOTE: quad detection issue - fourth vertex-index vs fourth loop-index:
    * Polygons take care of their loops ordering, hence not of their vertices ordering.
-   * Currently, our tfaces' fourth vertex index might be 0 even for a quad.
+   * Currently, the #TFace fourth vertex index might be 0 even for a quad.
    * However, we know our fourth loop index is never 0 for quads
    * (because they are sorted for polygons, and our quads are still mere copies of their polygons).
    * So we pass nullptr as #MFace pointer, and #mesh_loops_to_tessdata
@@ -1224,7 +1224,7 @@ void BKE_mesh_tessface_calc(Mesh *mesh)
   mesh_ensure_tessellation_customdata(mesh);
 }
 
-void BKE_mesh_tessface_ensure(struct Mesh *mesh)
+void BKE_mesh_tessface_ensure(Mesh *mesh)
 {
   if (mesh->totpoly && mesh->totface == 0) {
     BKE_mesh_tessface_calc(mesh);
@@ -1300,6 +1300,40 @@ void BKE_mesh_legacy_face_set_to_generic(Mesh *mesh)
   }
   if (faceset_sharing_info != nullptr) {
     faceset_sharing_info->remove_user_and_delete_if_last();
+  }
+}
+
+/** \} */
+
+/* -------------------------------------------------------------------- */
+/** \name Face Map Conversion
+ * \{ */
+
+void BKE_mesh_legacy_face_map_to_generic(Mesh *mesh)
+{
+  using namespace blender;
+  if (mesh->attributes().contains("face_maps")) {
+    return;
+  }
+  void *data = nullptr;
+  const ImplicitSharingInfo *sharing_info = nullptr;
+  for (const int i : IndexRange(mesh->pdata.totlayer)) {
+    CustomDataLayer &layer = mesh->pdata.layers[i];
+    if (layer.type == CD_FACEMAP) {
+      data = layer.data;
+      sharing_info = layer.sharing_info;
+      layer.data = nullptr;
+      layer.sharing_info = nullptr;
+      CustomData_free_layer(&mesh->pdata, CD_FACEMAP, mesh->totpoly, i);
+      break;
+    }
+  }
+  if (data != nullptr) {
+    CustomData_add_layer_named_with_data(
+        &mesh->pdata, CD_PROP_INT32, data, mesh->totpoly, "face_maps", sharing_info);
+  }
+  if (sharing_info != nullptr) {
+    sharing_info->remove_user_and_delete_if_last();
   }
 }
 

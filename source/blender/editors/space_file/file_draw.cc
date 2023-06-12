@@ -39,7 +39,6 @@
 #include "RNA_access.h"
 #include "RNA_prototypes.h"
 
-#include "ED_asset_handle.h"
 #include "ED_fileselect.h"
 #include "ED_screen.h"
 
@@ -156,17 +155,10 @@ static void file_but_enable_drag(uiBut *but,
   }
   else if (sfile->browse_mode == FILE_BROWSE_MODE_ASSETS &&
            (file->typeflag & FILE_TYPE_ASSET) != 0) {
-    char blend_path[FILE_MAX_LIBEXTRA];
-    if (BKE_blendfile_library_path_explode(path, blend_path, nullptr, nullptr)) {
-      const int import_method = ED_fileselect_asset_import_method_get(sfile, file);
-      BLI_assert(import_method > -1);
+    const int import_method = ED_fileselect_asset_import_method_get(sfile, file);
+    BLI_assert(import_method > -1);
 
-      AssetHandle asset{};
-      asset.file_data = file;
-
-      UI_but_drag_set_asset(
-          but, &asset, BLI_strdup(blend_path), import_method, icon, preview_image, scale);
-    }
+    UI_but_drag_set_asset(but, file->asset, import_method, icon, preview_image, scale);
   }
   else if (preview_image) {
     UI_but_drag_set_image(but, path, icon, preview_image, scale);
@@ -406,21 +398,21 @@ static void file_draw_preview(const FileDirEntry *file,
 
   /* the large image */
 
-  float col[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  float document_img_col[4] = {1.0f, 1.0f, 1.0f, 1.0f};
   if (is_icon) {
     if (file->typeflag & FILE_TYPE_DIR) {
-      UI_GetThemeColor4fv(TH_ICON_FOLDER, col);
+      UI_GetThemeColor4fv(TH_ICON_FOLDER, document_img_col);
     }
     else {
-      UI_GetThemeColor4fv(TH_TEXT, col);
+      UI_GetThemeColor4fv(TH_TEXT, document_img_col);
     }
   }
   else if (file->typeflag & FILE_TYPE_FTFONT) {
-    UI_GetThemeColor4fv(TH_TEXT, col);
+    UI_GetThemeColor4fv(TH_TEXT, document_img_col);
   }
 
   if (dimmed) {
-    col[3] *= 0.3f;
+    document_img_col[3] *= 0.3f;
   }
 
   if (!is_icon && file->typeflag & FILE_TYPE_BLENDERLIB) {
@@ -441,7 +433,7 @@ static void file_draw_preview(const FileDirEntry *file,
                                 scale,
                                 1.0f,
                                 1.0f,
-                                col);
+                                document_img_col);
 
   GPU_blend(GPU_BLEND_ALPHA);
 
@@ -451,9 +443,7 @@ static void file_draw_preview(const FileDirEntry *file,
     const float icon_size = 16.0f / icon_aspect * UI_SCALE_FAC;
     float icon_opacity = 0.3f;
     uchar icon_color[4] = {0, 0, 0, 255};
-    float bgcolor[4];
-    UI_GetThemeColor4fv(TH_ICON_FOLDER, bgcolor);
-    if (rgb_to_grayscale(bgcolor) < 0.5f) {
+    if (rgb_to_grayscale(document_img_col) < 0.5f) {
       icon_color[0] = 255;
       icon_color[1] = 255;
       icon_color[2] = 255;

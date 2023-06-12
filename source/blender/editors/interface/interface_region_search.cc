@@ -309,11 +309,8 @@ bool ui_searchbox_apply(uiBut *but, ARegion *region)
   return false;
 }
 
-static struct ARegion *wm_searchbox_tooltip_init(struct bContext *C,
-                                                 struct ARegion *region,
-                                                 int * /*r_pass*/,
-                                                 double * /*pass_delay*/,
-                                                 bool *r_exit_on_event)
+static ARegion *wm_searchbox_tooltip_init(
+    bContext *C, ARegion *region, int * /*r_pass*/, double * /*pass_delay*/, bool *r_exit_on_event)
 {
   *r_exit_on_event = true;
 
@@ -538,7 +535,7 @@ int ui_searchbox_autocomplete(bContext *C, ARegion *region, uiBut *but, char *st
   BLI_assert(but->type == UI_BTYPE_SEARCH_MENU);
 
   if (str[0]) {
-    data->items.autocpl = UI_autocomplete_begin(str, ui_but_string_get_max_length(but));
+    data->items.autocpl = UI_autocomplete_begin(str, ui_but_string_get_maxncpy(but));
 
     ui_searchbox_update_fn(C, search_but, but->editstr, &data->items);
 
@@ -723,7 +720,7 @@ static uiMenuItemSeparatorType ui_searchbox_item_separator(uiSearchboxData *data
   return separator_type;
 }
 
-static void ui_searchbox_region_layout_fn(const struct bContext *C, struct ARegion *region)
+static void ui_searchbox_region_layout_fn(const bContext *C, ARegion *region)
 {
   uiSearchboxData *data = (uiSearchboxData *)region->regiondata;
 

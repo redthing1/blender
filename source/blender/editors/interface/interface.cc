@@ -52,6 +52,7 @@
 #include "BLT_translation.h"
 
 #include "UI_interface.h"
+#include "UI_interface.hh"
 #include "UI_interface_icons.h"
 #include "UI_view2d.h"
 
@@ -79,10 +80,10 @@
 using blender::Vector;
 
 /* prototypes. */
-static void ui_but_to_pixelrect(struct rcti *rect,
-                                const struct ARegion *region,
-                                struct uiBlock *block,
-                                const struct uiBut *but);
+static void ui_but_to_pixelrect(rcti *rect,
+                                const ARegion *region,
+                                uiBlock *block,
+                                const uiBut *but);
 static void ui_def_but_rna__menu(bContext * /*C*/, uiLayout *layout, void *but_p);
 static void ui_def_but_rna__panel_type(bContext * /*C*/, uiLayout *layout, void *but_p);
 static void ui_def_but_rna__menu_type(bContext * /*C*/, uiLayout *layout, void *but_p);
@@ -216,7 +217,7 @@ void ui_window_to_block_fl(const ARegion *region, uiBlock *block, float *r_x, fl
   }
 }
 
-void ui_window_to_block_rctf(const struct ARegion *region,
+void ui_window_to_block_rctf(const ARegion *region,
                              uiBlock *block,
                              rctf *rct_dst,
                              const rctf *rct_src)
@@ -340,7 +341,7 @@ static void ui_update_window_matrix(const wmWindow *window, const ARegion *regio
   }
 }
 
-void ui_region_winrct_get_no_margin(const struct ARegion *region, struct rcti *r_rect)
+void ui_region_winrct_get_no_margin(const ARegion *region, rcti *r_rect)
 {
   uiBlock *block = static_cast<uiBlock *>(region->uiblocks.first);
   if (block && (block->flag & UI_BLOCK_LOOP) && (block->flag & UI_BLOCK_RADIAL) == 0) {
@@ -2167,7 +2168,7 @@ void UI_block_draw(const bContext *C, uiBlock *block)
   GPU_matrix_pop();
 }
 
-static void ui_block_message_subscribe(ARegion *region, struct wmMsgBus *mbus, uiBlock *block)
+static void ui_block_message_subscribe(ARegion *region, wmMsgBus *mbus, uiBlock *block)
 {
   uiBut *but_prev = nullptr;
   /* possibly we should keep the region this block is contained in? */
@@ -2191,7 +2192,7 @@ static void ui_block_message_subscribe(ARegion *region, struct wmMsgBus *mbus, u
   }
 }
 
-void UI_region_message_subscribe(ARegion *region, struct wmMsgBus *mbus)
+void UI_region_message_subscribe(ARegion *region, wmMsgBus *mbus)
 {
   LISTBASE_FOREACH (uiBlock *, block, &region->uiblocks) {
     ui_block_message_subscribe(region, mbus, block);
@@ -2204,7 +2205,7 @@ int ui_but_is_pushed_ex(uiBut *but, double *value)
 {
   int is_push = 0;
   if (but->pushed_state_func) {
-    return but->pushed_state_func(but, but->pushed_state_arg);
+    return but->pushed_state_func(*but);
   }
 
   if (but->bit) {
@@ -2551,7 +2552,7 @@ double ui_but_value_get(uiBut *but)
   if (but->rnaprop) {
     PropertyRNA *prop = but->rnaprop;
 
-    BLI_assert(RNA_property_array_check(prop) ? but->rnaindex != -1 : true);
+    BLI_assert(but->rnaindex != -1);
 
     switch (RNA_property_type(prop)) {
       case PROP_BOOLEAN:
@@ -2698,7 +2699,7 @@ void ui_but_value_set(uiBut *but, double value)
   ui_but_update_select_flag(but, &value);
 }
 
-int ui_but_string_get_max_length(uiBut *but)
+int ui_but_string_get_maxncpy(uiBut *but)
 {
   if (ELEM(but->type, UI_BTYPE_TEXT, UI_BTYPE_SEARCH_MENU)) {
     return but->hardmax;
@@ -3495,7 +3496,7 @@ static void ui_but_free(const bContext *C, uiBut *but)
   }
 
   if ((but->type == UI_BTYPE_IMAGE) && but->poin) {
-    IMB_freeImBuf((struct ImBuf *)but->poin);
+    IMB_freeImBuf((ImBuf *)but->poin);
   }
 
   ui_but_drag_free(but);
@@ -3991,14 +3992,14 @@ void UI_block_align_end(uiBlock *block)
   block->flag &= ~UI_BUT_ALIGN; /* all 4 flags */
 }
 
-struct ColorManagedDisplay *ui_block_cm_display_get(uiBlock *block)
+ColorManagedDisplay *ui_block_cm_display_get(uiBlock *block)
 {
   return IMB_colormanagement_display_get_named(block->display_device);
 }
 
 void ui_block_cm_to_display_space_v3(uiBlock *block, float pixel[3])
 {
-  struct ColorManagedDisplay *display = ui_block_cm_display_get(block);
+  ColorManagedDisplay *display = ui_block_cm_display_get(block);
 
   IMB_colormanagement_scene_linear_to_display_v3(pixel, display);
 }
@@ -4721,7 +4722,7 @@ static uiBut *ui_def_but_rna(uiBlock *block,
     but->rnaindex = index;
   }
   else {
-    but->rnaindex = -1;
+    but->rnaindex = 0;
   }
 
   if (icon) {
@@ -4890,7 +4891,7 @@ uiBut *uiDefButImage(
 
 uiBut *uiDefButAlert(uiBlock *block, int icon, int x, int y, short width, short height)
 {
-  struct ImBuf *ibuf = UI_icon_alert_imbuf_get((eAlertIcon)icon);
+  ImBuf *ibuf = UI_icon_alert_imbuf_get((eAlertIcon)icon);
   bTheme *btheme = UI_GetTheme();
   return uiDefButImage(block, ibuf, x, y, width, height, btheme->tui.wcol_menu_back.text);
 }
@@ -4936,20 +4937,20 @@ static int findBitIndex(uint x)
 
 /* Auto-complete helper functions. */
 struct AutoComplete {
-  size_t maxlen;
+  size_t maxncpy;
   int matches;
   char *truncate;
   const char *startname;
 };
 
-AutoComplete *UI_autocomplete_begin(const char *startname, size_t maxlen)
+AutoComplete *UI_autocomplete_begin(const char *startname, size_t maxncpy)
 {
   AutoComplete *autocpl;
 
   autocpl = MEM_cnew<AutoComplete>(__func__);
-  autocpl->maxlen = maxlen;
+  autocpl->maxncpy = maxncpy;
   autocpl->matches = 0;
-  autocpl->truncate = static_cast<char *>(MEM_callocN(sizeof(char) * maxlen, __func__));
+  autocpl->truncate = static_cast<char *>(MEM_callocN(sizeof(char) * maxncpy, __func__));
   autocpl->startname = startname;
 
   return autocpl;
@@ -4960,7 +4961,7 @@ void UI_autocomplete_update_name(AutoComplete *autocpl, const char *name)
   char *truncate = autocpl->truncate;
   const char *startname = autocpl->startname;
   int match_index = 0;
-  for (int a = 0; a < autocpl->maxlen - 1; a++) {
+  for (int a = 0; a < autocpl->maxncpy - 1; a++) {
     if (startname[a] == 0 || startname[a] != name[a]) {
       match_index = a;
       break;
@@ -4972,11 +4973,11 @@ void UI_autocomplete_update_name(AutoComplete *autocpl, const char *name)
     autocpl->matches++;
     /* first match */
     if (truncate[0] == 0) {
-      BLI_strncpy(truncate, name, autocpl->maxlen);
+      BLI_strncpy(truncate, name, autocpl->maxncpy);
     }
     else {
       /* remove from truncate what is not in bone->name */
-      for (int a = 0; a < autocpl->maxlen - 1; a++) {
+      for (int a = 0; a < autocpl->maxncpy - 1; a++) {
         if (name[a] == 0) {
           truncate[a] = 0;
           break;
@@ -4999,11 +5000,11 @@ int UI_autocomplete_end(AutoComplete *autocpl, char *autoname)
     else {
       match = AUTOCOMPLETE_PARTIAL_MATCH;
     }
-    BLI_strncpy(autoname, autocpl->truncate, autocpl->maxlen);
+    BLI_strncpy(autoname, autocpl->truncate, autocpl->maxncpy);
   }
   else {
     if (autoname != autocpl->startname) { /* don't copy a string over itself */
-      BLI_strncpy(autoname, autocpl->startname, autocpl->maxlen);
+      BLI_strncpy(autoname, autocpl->startname, autocpl->maxncpy);
     }
   }
 
@@ -6089,10 +6090,9 @@ void UI_but_func_tooltip_set(uiBut *but, uiButToolTipFunc func, void *arg, uiFre
   but->tip_arg_free = free_arg;
 }
 
-void UI_but_func_pushed_state_set(uiBut *but, uiButPushedStateFunc func, const void *arg)
+void UI_but_func_pushed_state_set(uiBut *but, std::function<bool(const uiBut &)> func)
 {
   but->pushed_state_func = func;
-  but->pushed_state_arg = arg;
   ui_but_update(but);
 }
 
@@ -6271,7 +6271,7 @@ uiBut *uiDefSearchBut(uiBlock *block,
                       void *arg,
                       int retval,
                       int icon,
-                      int maxlen,
+                      int maxncpy,
                       int x,
                       int y,
                       short width,
@@ -6280,8 +6280,20 @@ uiBut *uiDefSearchBut(uiBlock *block,
                       float a2,
                       const char *tip)
 {
-  uiBut *but = ui_def_but(
-      block, UI_BTYPE_SEARCH_MENU, retval, "", x, y, width, height, arg, 0.0, maxlen, a1, a2, tip);
+  uiBut *but = ui_def_but(block,
+                          UI_BTYPE_SEARCH_MENU,
+                          retval,
+                          "",
+                          x,
+                          y,
+                          width,
+                          height,
+                          arg,
+                          0.0,
+                          maxncpy,
+                          a1,
+                          a2,
+                          tip);
 
   ui_def_but_icon(but, icon, UI_HAS_ICON);
 
@@ -6390,11 +6402,8 @@ void UI_but_func_search_set_results_are_suggestions(uiBut *but, const bool value
 }
 
 /* Callbacks for operator search button. */
-static void operator_enum_search_update_fn(const struct bContext *C,
-                                           void *but,
-                                           const char *str,
-                                           uiSearchItems *items,
-                                           const bool /*is_first*/)
+static void operator_enum_search_update_fn(
+    const bContext *C, void *but, const char *str, uiSearchItems *items, const bool /*is_first*/)
 {
   wmOperatorType *ot = ((uiBut *)but)->optype;
   PropertyRNA *prop = ot->prop;
@@ -6443,7 +6452,7 @@ static void operator_enum_search_update_fn(const struct bContext *C,
   }
 }
 
-static void operator_enum_search_exec_fn(struct bContext * /*C*/, void *but, void *arg2)
+static void operator_enum_search_exec_fn(bContext * /*C*/, void *but, void *arg2)
 {
   wmOperatorType *ot = ((uiBut *)but)->optype;
   /* Will create it if needed! */
@@ -6469,7 +6478,7 @@ uiBut *uiDefSearchButO_ptr(uiBlock *block,
                            void *arg,
                            int retval,
                            int icon,
-                           int maxlen,
+                           int maxncpy,
                            int x,
                            int y,
                            short width,
@@ -6478,7 +6487,7 @@ uiBut *uiDefSearchButO_ptr(uiBlock *block,
                            float a2,
                            const char *tip)
 {
-  uiBut *but = uiDefSearchBut(block, arg, retval, icon, maxlen, x, y, width, height, a1, a2, tip);
+  uiBut *but = uiDefSearchBut(block, arg, retval, icon, maxncpy, x, y, width, height, a1, a2, tip);
   UI_but_func_search_set(but,
                          ui_searchbox_create_generic,
                          operator_enum_search_update_fn,
@@ -6799,7 +6808,7 @@ void UI_but_string_info_get(bContext *C, uiBut *but, ...)
   }
 }
 
-void UI_but_extra_icon_string_info_get(struct bContext *C, uiButExtraOpIcon *extra_icon, ...)
+void UI_but_extra_icon_string_info_get(bContext *C, uiButExtraOpIcon *extra_icon, ...)
 {
   va_list args;
   uiStringInfo *si;

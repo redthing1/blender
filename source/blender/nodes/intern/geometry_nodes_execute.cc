@@ -23,8 +23,15 @@ namespace geo_log = blender::nodes::geo_eval_log;
 
 namespace blender::nodes {
 
-static const std::string use_attribute_suffix = "_use_attribute";
-static const std::string attribute_name_suffix = "_attribute_name";
+StringRef input_use_attribute_suffix()
+{
+  return "_use_attribute";
+}
+
+StringRef input_attribute_name_suffix()
+{
+  return "_attribute_name";
+}
 
 bool socket_type_has_attribute_toggle(const bNodeSocket &socket)
 {
@@ -281,9 +288,9 @@ static void initialize_group_input(const bNodeTree &tree,
   }
 
   const IDProperty *property_use_attribute = IDP_GetPropertyFromGroup(
-      properties, (io_input.identifier + use_attribute_suffix).c_str());
+      properties, (io_input.identifier + input_use_attribute_suffix()).c_str());
   const IDProperty *property_attribute_name = IDP_GetPropertyFromGroup(
-      properties, (io_input.identifier + attribute_name_suffix).c_str());
+      properties, (io_input.identifier + input_attribute_name_suffix()).c_str());
   if (property_use_attribute == nullptr || property_attribute_name == nullptr) {
     init_socket_cpp_value_from_property(*property, socket_data_type, r_value);
     return;
@@ -334,7 +341,7 @@ static MultiValueMap<eAttrDomain, OutputAttributeInfo> find_output_attributes_to
       continue;
     }
 
-    const std::string prop_name = socket->identifier + attribute_name_suffix;
+    const std::string prop_name = socket->identifier + input_attribute_name_suffix();
     const IDProperty *prop = IDP_GetPropertyFromGroup(properties, prop_name.c_str());
     if (prop == nullptr) {
       continue;
@@ -466,7 +473,7 @@ static void store_output_attributes(GeometrySet &geometry,
   store_computed_output_attributes(geometry, attributes_to_store);
 }
 
-GeometrySet execute_geometry_nodes(
+GeometrySet execute_geometry_nodes_on_geometry(
     const bNodeTree &btree,
     const IDProperty *properties,
     const ComputeContext &base_compute_context,
@@ -542,8 +549,6 @@ GeometrySet execute_geometry_nodes(
   nodes::GeoNodesLFLocalUserData local_user_data(user_data);
 
   lf::Context lf_context(graph_executor.init_storage(allocator), &user_data, &local_user_data);
-  lf_context.storage = graph_executor.init_storage(allocator);
-  lf_context.user_data = &user_data;
   lf::BasicParams lf_params{graph_executor,
                             param_inputs,
                             param_outputs,
@@ -613,8 +618,8 @@ void update_input_properties_from_node_tree(const bNodeTree &tree,
     }
 
     if (nodes::socket_type_has_attribute_toggle(socket)) {
-      const std::string use_attribute_id = socket.identifier + use_attribute_suffix;
-      const std::string attribute_name_id = socket.identifier + attribute_name_suffix;
+      const std::string use_attribute_id = socket.identifier + input_use_attribute_suffix();
+      const std::string attribute_name_id = socket.identifier + input_attribute_name_suffix();
 
       IDPropertyTemplate idprop = {0};
       IDProperty *use_attribute_prop = IDP_New(IDP_INT, &idprop, use_attribute_id.c_str());
@@ -658,7 +663,7 @@ void update_output_properties_from_node_tree(const bNodeTree &tree,
       continue;
     }
 
-    const std::string idprop_name = socket.identifier + attribute_name_suffix;
+    const std::string idprop_name = socket.identifier + input_attribute_name_suffix();
     IDProperty *new_prop = IDP_NewStringMaxSize("", idprop_name.c_str(), MAX_NAME);
     if (socket.description[0] != '\0') {
       IDPropertyUIData *ui_data = IDP_ui_data_ensure(new_prop);

@@ -114,7 +114,6 @@
 #include "BKE_multires.h"
 #include "BKE_node.hh"
 #include "BKE_object.h"
-#include "BKE_object_facemap.h"
 #include "BKE_paint.h"
 #include "BKE_particle.h"
 #include "BKE_pbvh.h"
@@ -233,7 +232,6 @@ static void object_copy_data(Main *bmain, ID *id_dst, const ID *id_src, const in
     }
   }
 
-  BKE_object_facemap_copy_list(&ob_dst->fmaps, &ob_src->fmaps);
   BKE_constraints_copy_ex(&ob_dst->constraints, &ob_src->constraints, flag_subdata, true);
 
   ob_dst->mode = ob_dst->type != OB_GPENCIL_LEGACY ? OB_MODE_OBJECT : ob_dst->mode;
@@ -302,7 +300,6 @@ static void object_free_data(ID *id)
   MEM_SAFE_FREE(ob->iuser);
   MEM_SAFE_FREE(ob->runtime.bb);
 
-  BLI_freelistN(&ob->fmaps);
   if (ob->pose) {
     BKE_pose_free_ex(ob->pose, false);
     ob->pose = nullptr;
@@ -546,13 +543,6 @@ static void object_foreach_path(ID *id, BPathForeachPathData *bpath_data)
   }
 }
 
-static void write_fmaps(BlendWriter *writer, ListBase *fbase)
-{
-  LISTBASE_FOREACH (bFaceMap *, fmap, fbase) {
-    BLO_write_struct(writer, bFaceMap, fmap);
-  }
-}
-
 static void object_blend_write(BlendWriter *writer, ID *id, const void *id_address)
 {
   Object *ob = (Object *)id;
@@ -586,7 +576,6 @@ static void object_blend_write(BlendWriter *writer, ID *id, const void *id_addre
   }
 
   BKE_pose_blend_write(writer, ob->pose, arm);
-  write_fmaps(writer, &ob->fmaps);
   BKE_constraint_blend_write(writer, &ob->constraints);
   animviz_motionpath_blend_write(writer, ob->mpath);
 
@@ -682,7 +671,6 @@ static void object_blend_read_data(BlendDataReader *reader, ID *id)
   /* Only for versioning, vertex group names are now stored on object data. */
   BLO_read_list(reader, &ob->defbase);
 
-  BLO_read_list(reader, &ob->fmaps);
   /* XXX deprecated - old animation system <<< */
   direct_link_nlastrips(reader, &ob->nlastrips);
   BLO_read_list(reader, &ob->constraintChannels);
@@ -1265,7 +1253,7 @@ static IDProperty *object_asset_dimensions_property(Object *ob)
   return property;
 }
 
-static void object_asset_pre_save(void *asset_ptr, struct AssetMetaData *asset_data)
+static void object_asset_pre_save(void *asset_ptr, AssetMetaData *asset_data)
 {
   Object *ob = (Object *)asset_ptr;
   BLI_assert(GS(ob->id.name) == ID_OB);
@@ -1644,7 +1632,7 @@ bool BKE_object_copy_modifier(
   return true;
 }
 
-bool BKE_object_copy_gpencil_modifier(struct Object *ob_dst, GpencilModifierData *gmd_src)
+bool BKE_object_copy_gpencil_modifier(Object *ob_dst, GpencilModifierData *gmd_src)
 {
   BLI_assert(ob_dst->type == OB_GPENCIL_LEGACY);
 
@@ -2014,7 +2002,7 @@ bool BKE_object_data_is_in_editmode(const Object *ob, const ID *id)
   }
 }
 
-char *BKE_object_data_editmode_flush_ptr_get(struct ID *id)
+char *BKE_object_data_editmode_flush_ptr_get(ID *id)
 {
   const short type = GS(id->name);
   switch (type) {
@@ -2081,7 +2069,7 @@ bool BKE_object_is_in_wpaint_select_vert(const Object *ob)
   return false;
 }
 
-bool BKE_object_has_mode_data(const struct Object *ob, eObjectMode object_mode)
+bool BKE_object_has_mode_data(const Object *ob, eObjectMode object_mode)
 {
   if (object_mode & OB_MODE_EDIT) {
     if (BKE_object_is_in_editmode(ob)) {
@@ -2111,7 +2099,7 @@ bool BKE_object_has_mode_data(const struct Object *ob, eObjectMode object_mode)
   return false;
 }
 
-bool BKE_object_is_mode_compat(const struct Object *ob, eObjectMode object_mode)
+bool BKE_object_is_mode_compat(const Object *ob, eObjectMode object_mode)
 {
   return ((ob->mode == object_mode) || (ob->mode & object_mode) != 0);
 }
@@ -2450,7 +2438,7 @@ void BKE_object_copy_softbody(Object *ob_dst, const Object *ob_src, const int fl
     }
 
     if (sb->bspring) {
-      sbn->bspring = (struct BodySpring *)MEM_dupallocN(sb->bspring);
+      sbn->bspring = (BodySpring *)MEM_dupallocN(sb->bspring);
     }
   }
 
@@ -2952,7 +2940,7 @@ bool BKE_object_obdata_is_libdata(const Object *ob)
   return (ob && ob->data && ID_IS_LINKED(ob->data));
 }
 
-void BKE_object_obdata_size_init(struct Object *ob, const float size)
+void BKE_object_obdata_size_init(Object *ob, const float size)
 {
   /* apply radius as a scale to types that support it */
   switch (ob->type) {
@@ -3204,7 +3192,7 @@ void BKE_object_to_mat4(Object *ob, float r_mat[4][4])
   add_v3_v3v3(r_mat[3], ob->loc, ob->dloc);
 }
 
-void BKE_object_matrix_local_get(struct Object *ob, float r_mat[4][4])
+void BKE_object_matrix_local_get(Object *ob, float r_mat[4][4])
 {
   if (ob->parent) {
     float par_imat[4][4];
@@ -3695,7 +3683,7 @@ void BKE_object_apply_mat4(Object *ob,
   BKE_object_apply_mat4_ex(ob, mat, use_parent ? ob->parent : nullptr, ob->parentinv, use_compat);
 }
 
-void BKE_object_apply_parent_inverse(struct Object *ob)
+void BKE_object_apply_parent_inverse(Object *ob)
 {
   /*
    * Use parent's world transform as the child's origin.
@@ -4131,7 +4119,7 @@ bool BKE_object_empty_image_data_is_visible_in_view3d(const Object *ob, const Re
   return true;
 }
 
-bool BKE_object_minmax_empty_drawtype(const struct Object *ob, float r_min[3], float r_max[3])
+bool BKE_object_minmax_empty_drawtype(const Object *ob, float r_min[3], float r_max[3])
 {
   BLI_assert(ob->type == OB_EMPTY);
   float3 min(0), max(0);
@@ -5198,7 +5186,7 @@ MovieClip *BKE_object_movieclip_get(Scene *scene, Object *ob, bool use_default)
   return clip;
 }
 
-bool BKE_object_supports_material_slots(struct Object *ob)
+bool BKE_object_supports_material_slots(Object *ob)
 {
   return ELEM(ob->type,
               OB_MESH,
@@ -5288,7 +5276,7 @@ static void obrel_list_add(LinkNode **links, Object *ob)
 }
 
 LinkNode *BKE_object_relational_superset(const Scene *scene,
-                                         struct ViewLayer *view_layer,
+                                         ViewLayer *view_layer,
                                          eObjectSet objectSet,
                                          eObRelationTypes includeFilter)
 {
@@ -5368,7 +5356,7 @@ LinkNode *BKE_object_relational_superset(const Scene *scene,
   return links;
 }
 
-struct LinkNode *BKE_object_groups(Main *bmain, Scene *scene, Object *ob)
+LinkNode *BKE_object_groups(Main *bmain, Scene *scene, Object *ob)
 {
   LinkNode *collection_linknode = nullptr;
   Collection *collection = nullptr;
@@ -5635,7 +5623,7 @@ bool BKE_object_modifier_update_subframe(Depsgraph *depsgraph,
   return false;
 }
 
-void BKE_object_update_select_id(struct Main *bmain)
+void BKE_object_update_select_id(Main *bmain)
 {
   Object *ob = (Object *)bmain->objects.first;
   int select_id = 1;
@@ -5693,10 +5681,7 @@ void BKE_object_check_uuids_unique_and_report(const Object *object)
   BKE_modifier_check_uuids_unique_and_report(object);
 }
 
-void BKE_object_modifiers_lib_link_common(void *userData,
-                                          struct Object *ob,
-                                          struct ID **idpoin,
-                                          int cb_flag)
+void BKE_object_modifiers_lib_link_common(void *userData, Object *ob, ID **idpoin, int cb_flag)
 {
   BlendLibReader *reader = (BlendLibReader *)userData;
 

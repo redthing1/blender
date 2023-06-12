@@ -114,7 +114,7 @@ static SpaceLink *nla_create(const ScrArea *area, const Scene *scene)
   return (SpaceLink *)snla;
 }
 
-/* not spacelink itself */
+/* Doesn't free the space-link itself. */
 static void nla_free(SpaceLink *sl)
 {
   SpaceNla *snla = (SpaceNla *)sl;
@@ -126,7 +126,7 @@ static void nla_free(SpaceLink *sl)
 }
 
 /* spacetype; init callback */
-static void nla_init(struct wmWindowManager *wm, ScrArea *area)
+static void nla_init(wmWindowManager *wm, ScrArea *area)
 {
   SpaceNla *snla = (SpaceNla *)area->spacedata.first;
 

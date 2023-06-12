@@ -27,6 +27,9 @@
 #include "ED_asset_mark_clear.h"
 #include "ED_asset_type.h"
 
+#include "WM_api.h"
+#include "WM_types.h"
+
 bool ED_asset_mark_id(ID *id)
 {
   if (id->asset_data) {
@@ -72,7 +75,7 @@ bool ED_asset_clear_id(ID *id)
   return true;
 }
 
-void ED_assets_pre_save(struct Main *bmain)
+void ED_assets_pre_save(Main *bmain)
 {
   ID *id;
   FOREACH_MAIN_ID_BEGIN (bmain, id) {
@@ -95,4 +98,17 @@ bool ED_asset_can_mark_single_from_context(const bContext *C)
     return false;
   }
   return ED_asset_type_is_supported(id);
+}
+
+bool ED_asset_copy_to_id(const AssetMetaData *asset_data, ID *destination)
+{
+  if (!BKE_id_can_be_asset(destination)) {
+    return false;
+  }
+
+  if (destination->asset_data) {
+    BKE_asset_metadata_free(&destination->asset_data);
+  }
+  destination->asset_data = BKE_asset_metadata_copy(asset_data);
+  return true;
 }
