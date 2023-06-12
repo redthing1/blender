@@ -62,8 +62,6 @@
 
 #include "GEO_reverse_uv_sampler.hh"
 
-#include "curves_intern.hh"
-
 /**
  * The code below uses a suffix naming convention to indicate the coordinate space:
  * `cu`: Local space of the curves object that is being edited.
