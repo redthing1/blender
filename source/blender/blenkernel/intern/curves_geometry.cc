@@ -1116,9 +1116,6 @@ CurvesGeometry curves_copy_point_selection(
     const IndexMask &points_to_copy,
     const AnonymousAttributePropagationInfo &propagation_info)
 {
-  if (points_to_copy.is_empty()) {
-    return {};
-  }
   const Array<int> point_to_curve_map = curves.point_to_curve_map();
   Array<int> curve_point_counts(curves.curves_num(), 0);
   points_to_copy.foreach_index(
