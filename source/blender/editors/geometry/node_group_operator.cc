@@ -41,6 +41,7 @@
 #include "UI_interface.h"
 #include "UI_resources.h"
 
+#include "ED_asset_import.hh"
 #include "ED_mesh.h"
 
 #include "FN_lazy_function_execute.hh"
@@ -48,23 +49,32 @@
 #include "NOD_geometry_nodes_execute.hh"
 #include "NOD_geometry_nodes_lazy_function.hh"
 
+#include "AS_asset_representation.hh"
+
 #include "geometry_intern.hh"
 
 namespace blender::ed::geometry {
 
-static const bNodeTree *get_node_tree(Main &bmain, PointerRNA &ptr)
+static const bNodeTree *get_node_group(const bContext &C)
 {
-  char name[MAX_ID_NAME];
-  RNA_string_get(&ptr, "name", name);
-  const ID *id = BKE_libblock_find_name(&bmain, ID_NT, name);
-  const bNodeTree *node_tree = reinterpret_cast<const bNodeTree *>(id);
-  if (!node_tree) {
+  const AssetLibraryReference *library_ref = CTX_wm_asset_library_ref(&C);
+  if (!library_ref) {
     return nullptr;
   }
-  if (node_tree->type != NTREE_GEOMETRY) {
+  const AssetRepresentation *c_asset = CTX_wm_asset(&C);
+  if (!c_asset) {
     return nullptr;
   }
-  return node_tree;
+  auto &asset = reinterpret_cast<const asset_system::AssetRepresentation &>(c_asset);
+  bNodeTree *node_group = reinterpret_cast<bNodeTree *>(
+      ED_asset_get_local_id_from_asset_or_link(CTX_data_main(&C), asset, ID_NT));
+  if (!node_group) {
+    return nullptr;
+  }
+  if (node_group->type != NTREE_GEOMETRY) {
+    return nullptr;
+  }
+  return node_group;
 }
 
 class OperatorComputeContext : public ComputeContext {
@@ -196,7 +206,7 @@ static int run_node_group_exec(bContext *C, wmOperator *op)
   }
   const eObjectMode mode = eObjectMode(active_object->mode);
 
-  const bNodeTree *node_tree = get_node_tree(*bmain, *op->ptr);
+  const bNodeTree *node_tree = get_node_group(*C);
   if (!node_tree) {
     return OPERATOR_CANCELLED;
   }
@@ -247,7 +257,7 @@ static int run_node_group_exec(bContext *C, wmOperator *op)
 
 static int run_node_group_invoke(bContext *C, wmOperator *op, const wmEvent * /*event*/)
 {
-  const bNodeTree *node_tree = get_node_tree(*CTX_data_main(C), *op->ptr);
+  const bNodeTree *node_tree = get_node_group(*C);
   if (!node_tree) {
     return OPERATOR_CANCELLED;
   }
@@ -260,7 +270,7 @@ static int run_node_group_invoke(bContext *C, wmOperator *op, const wmEvent * /*
 
 static char *run_node_group_get_description(bContext *C, wmOperatorType * /*ot*/, PointerRNA *ptr)
 {
-  const bNodeTree *node_tree = get_node_tree(*CTX_data_main(C), *ptr);
+  const bNodeTree *node_tree = get_node_group(*C);
   if (!node_tree) {
     return nullptr;
   }
@@ -278,14 +288,6 @@ void GEOMETRY_OT_execute_node_group(wmOperatorType *ot)
   ot->get_description = run_node_group_get_description;
 
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
-
-  PropertyRNA *prop = RNA_def_string(ot->srna,
-                                     "name",
-                                     nullptr,
-                                     MAX_ID_NAME - 2,
-                                     "Name",
-                                     "Name of the data-block to use by the operator");
-  RNA_def_property_flag(prop, PropertyFlag(PROP_SKIP_SAVE | PROP_HIDDEN));
 }
 
 }  // namespace blender::ed::geometry
