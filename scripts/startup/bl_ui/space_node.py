@@ -157,7 +157,7 @@ class NODE_HT_header(Header):
                     else:
                         row.template_ID(snode, "node_tree", new="node.new_geometry_nodes_modifier")
             else:
-                layout.template_ID(snode, "node_tree", new="node.new_node_tree")
+                layout.template_ID(snode, "node_tree", new="node.new_geometry_node_group_assign")
         else:
             # Custom node tree is edited as independent ID block
             NODE_MT_editor_menus.draw_collapsible(context, layout)
