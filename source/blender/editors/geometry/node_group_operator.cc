@@ -16,10 +16,13 @@
 #include "BKE_compute_contexts.hh"
 #include "BKE_context.h"
 #include "BKE_curves.hh"
+#include "BKE_editmesh.h"
 #include "BKE_geometry_set.hh"
 #include "BKE_layer.h"
 #include "BKE_lib_id.h"
 #include "BKE_material.h"
+#include "BKE_mesh.hh"
+#include "BKE_mesh_wrapper.h"
 #include "BKE_node_runtime.hh"
 #include "BKE_object.h"
 #include "BKE_pointcloud.h"
@@ -34,10 +37,11 @@
 #include "RNA_access.h"
 #include "RNA_define.h"
 #include "RNA_enum_types.h"
-// #include "RNA_prototypes.h"
 
 #include "UI_interface.h"
 #include "UI_resources.h"
+
+#include "ED_mesh.h"
 
 #include "FN_lazy_function_execute.hh"
 
@@ -84,7 +88,13 @@ class OperatorComputeContext : public ComputeContext {
   }
 };
 
-static GeometrySet get_original_geometry_eval_copy(const Object &object)
+/**
+ * Geometry nodes currently requires working on "evaluated" data-blocks (rather than "original"
+ * data-blocks that are part of a #Main data-base). This could change in the future, but for now,
+ * we need to create evaluated copies of geometry before passing it to geometry nodes. Implicit
+ * sharing lets us avoid copying attribute data though.
+ */
+static GeometrySet get_original_geometry_eval_copy(Object &object)
 {
   switch (object.type) {
     case OB_CURVES: {
@@ -95,6 +105,17 @@ static GeometrySet get_original_geometry_eval_copy(const Object &object)
       PointCloud *points = BKE_pointcloud_copy_for_eval(
           static_cast<const PointCloud *>(object.data));
       return GeometrySet::create_with_pointcloud(points);
+    }
+    case OB_MESH: {
+      const Mesh *mesh = static_cast<const Mesh *>(object.data);
+      if (mesh->edit_mesh) {
+        Mesh *mesh_copy = BKE_mesh_wrapper_from_editmesh(mesh->edit_mesh, nullptr, mesh);
+        BKE_mesh_wrapper_ensure_mdata(mesh_copy);
+        Mesh *final_copy = BKE_mesh_copy_for_eval(mesh_copy);
+        BKE_id_free(nullptr, mesh_copy);
+        return GeometrySet::create_with_mesh(final_copy);
+      }
+      return GeometrySet::create_with_mesh(BKE_mesh_copy_for_eval(mesh));
     }
     default:
       return {};
@@ -121,7 +142,7 @@ static void store_result_geometry(Main &bmain, Object &object, GeometrySet geome
     }
     case OB_POINTCLOUD: {
       PointCloud &points = *static_cast<PointCloud *>(object.data);
-      PointCloud *new_points = geometry.get_pointcloud_for_write();
+      PointCloud *new_points = geometry.get_component_for_write<PointCloudComponent>().release();
       if (!new_points) {
         CustomData_free(&points.pdata, points.totpoint);
         points.totpoint = 0;
@@ -133,6 +154,28 @@ static void store_result_geometry(Main &bmain, Object &object, GeometrySet geome
 
       BKE_object_material_from_eval_data(&bmain, &object, &new_points->id);
       BKE_pointcloud_nomain_to_pointcloud(new_points, &points);
+      break;
+    }
+    case OB_MESH: {
+      Mesh &mesh = *static_cast<Mesh *>(object.data);
+      Mesh *new_mesh = geometry.get_component_for_write<MeshComponent>().release();
+      if (!new_mesh) {
+        BKE_mesh_clear_geometry(&mesh);
+        if (object.mode == OB_MODE_EDIT) {
+          EDBM_mesh_make(&object, SCE_SELECT_VERTEX, true);
+        }
+        break;
+      }
+
+      /* Anonymous attributes shouldn't be available on the applied geometry. */
+      new_mesh->attributes_for_write().remove_anonymous();
+
+      BKE_object_material_from_eval_data(&bmain, &object, &new_mesh->id);
+      BKE_mesh_nomain_to_mesh(new_mesh, &mesh, &object);
+      if (object.mode == OB_MODE_EDIT) {
+        EDBM_mesh_make(&object, SCE_SELECT_VERTEX, true);
+        BKE_editmesh_looptri_and_normals_calc(mesh.edit_mesh);
+      }
       break;
     }
   }
@@ -172,7 +215,7 @@ static int run_node_group_exec(bContext *C, wmOperator *op)
   OperatorComputeContext compute_context(op->type->idname);
 
   for (Object *object : Span(objects, objects_len)) {
-    if (!ELEM(object->type, OB_CURVES, OB_POINTCLOUD)) {
+    if (!ELEM(object->type, OB_CURVES, OB_POINTCLOUD, OB_MESH)) {
       continue;
     }
     nodes::GeoNodesOperatorData operator_eval_data{};
