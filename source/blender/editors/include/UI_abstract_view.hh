@@ -85,8 +85,9 @@ class AbstractView {
   virtual bool listen(const wmNotifier &) const;
 
   /**
-   * Enable filtering (typically triggered on Ctrl+F).
-   * \return True when filtering was begun successfully.
+   * Enable filtering. Typically used to enable a filter text button. Triggered on Ctrl+F by
+   * default.
+   * \return True when filtering was enabled successfully.
    */
   virtual bool begin_filtering(const bContext &C) const;
 
@@ -197,6 +198,7 @@ class AbstractViewItem {
   bool is_interactive() const;
 
   void disable_activatable();
+
   /**
    * Requires the view to have completed reconstruction, see #is_reconstructed(). Otherwise we
    * can't be sure about the item state.
@@ -271,7 +273,7 @@ class AbstractViewItemDragController {
   virtual ~AbstractViewItemDragController() = default;
 
   virtual eWM_DragDataType get_drag_type() const = 0;
-  virtual void *create_drag_data() const = 0;
+  virtual void *create_drag_data(bContext &C) const = 0;
   virtual void on_drag_start();
 
   /** Request the view the item is registered for as type #ViewType. Throws a `std::bad_cast`

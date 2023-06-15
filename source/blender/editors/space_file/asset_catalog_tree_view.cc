@@ -104,7 +104,7 @@ class AssetCatalogDragController : public ui::AbstractViewItemDragController {
                                       AssetCatalogTreeItem &catalog_item);
 
   eWM_DragDataType get_drag_type() const override;
-  void *create_drag_data() const override;
+  void *create_drag_data(bContext &C) const override;
   void on_drag_start() override;
 };
 
@@ -405,8 +405,8 @@ std::string AssetCatalogDropTarget::drop_tooltip_asset_catalog(const wmDrag &dra
   const AssetCatalog *src_catalog = get_drag_catalog(drag, get_asset_library());
 
   return fmt::format(TIP_("Move catalog {} into {}"),
-                     (std::string_view)src_catalog->path.name(),
-                     (std::string_view)catalog_item_.get_name());
+                     std::string_view(src_catalog->path.name()),
+                     std::string_view(catalog_item_.get_name()));
 }
 
 std::string AssetCatalogDropTarget::drop_tooltip_asset_list(const wmDrag &drag) const
@@ -551,7 +551,7 @@ eWM_DragDataType AssetCatalogDragController::get_drag_type() const
   return WM_DRAG_ASSET_CATALOG;
 }
 
-void *AssetCatalogDragController::create_drag_data() const
+void *AssetCatalogDragController::create_drag_data(bContext & /*C*/) const
 {
   wmDragAssetCatalog *drag_catalog = (wmDragAssetCatalog *)MEM_callocN(sizeof(*drag_catalog),
                                                                        __func__);
@@ -620,7 +620,7 @@ std::string AssetCatalogTreeViewAllItem::DropTarget::drop_tooltip(const wmDrag &
       drag, *get_view<AssetCatalogTreeView>().asset_library_);
 
   return fmt::format(TIP_("Move catalog {} to the top level of the tree"),
-                     (std::string_view)drag_catalog->path.name());
+                     std::string_view(drag_catalog->path.name()));
 }
 
 bool AssetCatalogTreeViewAllItem::DropTarget::on_drop(bContext * /*C*/, const wmDrag &drag) const

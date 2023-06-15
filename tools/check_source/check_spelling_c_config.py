@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2023 Blender Foundation
+#
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 # these must be all lower case for comparisons
@@ -602,6 +604,10 @@ dict_custom = {
     "shader",
     "shaders",
     "specular",
+
+    # Mathematical terms.
+    "egenvalue",
+    "egenvalues",
 
     # Blender specific terms.
     "animsys",

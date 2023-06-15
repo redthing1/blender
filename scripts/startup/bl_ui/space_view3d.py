@@ -1,4 +1,7 @@
+# SPDX-FileCopyrightText: 2009-2023 Blender Foundation
+#
 # SPDX-License-Identifier: GPL-2.0-or-later
+
 import bpy
 from bpy.types import (
     Header,
@@ -2033,6 +2036,22 @@ class VIEW3D_MT_select_edit_gpencil(Menu):
 
         layout.separator()
 
+        layout.operator("grease_pencil.select_linked", text="Linked")
+
+        layout.separator()
+
+        op = layout.operator("grease_pencil.select_ends", text="First")
+        op.amount_start = 1
+        op.amount_end = 0
+        op = layout.operator("grease_pencil.select_ends", text="Last")
+        op.amount_start = 0
+        op.amount_end = 1
+
+        layout.separator()
+
+        layout.operator("grease_pencil.select_more")
+        layout.operator("grease_pencil.select_less")
+
 
 class VIEW3D_MT_select_paint_mask(Menu):
     bl_label = "Select"
@@ -2106,7 +2125,7 @@ class VIEW3D_MT_select_edit_curves(Menu):
         layout.separator()
 
         layout.operator("curves.select_random", text="Random")
-        layout.operator("curves.select_end", text="Endpoints")
+        layout.operator("curves.select_ends", text="Endpoints")
         layout.operator("curves.select_linked", text="Linked")
 
         layout.separator()
@@ -2124,7 +2143,7 @@ class VIEW3D_MT_select_sculpt_curves(Menu):
         layout.operator("curves.select_all", text="None").action = 'DESELECT'
         layout.operator("curves.select_all", text="Invert").action = 'INVERT'
         layout.operator("sculpt_curves.select_random", text="Random")
-        layout.operator("curves.select_end", text="Endpoints")
+        layout.operator("curves.select_ends", text="Endpoints")
         layout.operator("sculpt_curves.select_grow", text="Grow")
 
 

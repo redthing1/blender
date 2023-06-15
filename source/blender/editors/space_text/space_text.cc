@@ -84,7 +84,7 @@ static SpaceLink *text_create(const ScrArea * /*area*/, const Scene * /*scene*/)
   return (SpaceLink *)stext;
 }
 
-/* not spacelink itself */
+/* Doesn't free the space-link itself. */
 static void text_free(SpaceLink *sl)
 {
   SpaceText *stext = (SpaceText *)sl;
@@ -481,7 +481,6 @@ void ED_spacetype_text(void)
   /* register formatters */
   ED_text_format_register_py();
   ED_text_format_register_osl();
-  ED_text_format_register_lua();
   ED_text_format_register_pov();
   ED_text_format_register_pov_ini();
 }
