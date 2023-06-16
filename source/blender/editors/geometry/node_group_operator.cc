@@ -104,17 +104,17 @@ class OperatorComputeContext : public ComputeContext {
  * we need to create evaluated copies of geometry before passing it to geometry nodes. Implicit
  * sharing lets us avoid copying attribute data though.
  */
-static GeometrySet get_original_geometry_eval_copy(Object &object)
+static bke::GeometrySet get_original_geometry_eval_copy(Object &object)
 {
   switch (object.type) {
     case OB_CURVES: {
       Curves *curves = BKE_curves_copy_for_eval(static_cast<const Curves *>(object.data));
-      return GeometrySet::create_with_curves(curves);
+      return bke::GeometrySet::create_with_curves(curves);
     }
     case OB_POINTCLOUD: {
       PointCloud *points = BKE_pointcloud_copy_for_eval(
           static_cast<const PointCloud *>(object.data));
-      return GeometrySet::create_with_pointcloud(points);
+      return bke::GeometrySet::create_with_pointcloud(points);
     }
     case OB_MESH: {
       const Mesh *mesh = static_cast<const Mesh *>(object.data);
@@ -123,16 +123,16 @@ static GeometrySet get_original_geometry_eval_copy(Object &object)
         BKE_mesh_wrapper_ensure_mdata(mesh_copy);
         Mesh *final_copy = BKE_mesh_copy_for_eval(mesh_copy);
         BKE_id_free(nullptr, mesh_copy);
-        return GeometrySet::create_with_mesh(final_copy);
+        return bke::GeometrySet::create_with_mesh(final_copy);
       }
-      return GeometrySet::create_with_mesh(BKE_mesh_copy_for_eval(mesh));
+      return bke::GeometrySet::create_with_mesh(BKE_mesh_copy_for_eval(mesh));
     }
     default:
       return {};
   }
 }
 
-static void store_result_geometry(Main &bmain, Object &object, GeometrySet geometry)
+static void store_result_geometry(Main &bmain, Object &object, bke::GeometrySet geometry)
 {
   switch (object.type) {
     case OB_CURVES: {
@@ -152,7 +152,8 @@ static void store_result_geometry(Main &bmain, Object &object, GeometrySet geome
     }
     case OB_POINTCLOUD: {
       PointCloud &points = *static_cast<PointCloud *>(object.data);
-      PointCloud *new_points = geometry.get_component_for_write<PointCloudComponent>().release();
+      PointCloud *new_points =
+          geometry.get_component_for_write<bke::PointCloudComponent>().release();
       if (!new_points) {
         CustomData_free(&points.pdata, points.totpoint);
         points.totpoint = 0;
@@ -168,7 +169,7 @@ static void store_result_geometry(Main &bmain, Object &object, GeometrySet geome
     }
     case OB_MESH: {
       Mesh &mesh = *static_cast<Mesh *>(object.data);
-      Mesh *new_mesh = geometry.get_component_for_write<MeshComponent>().release();
+      Mesh *new_mesh = geometry.get_component_for_write<bke::MeshComponent>().release();
       if (!new_mesh) {
         BKE_mesh_clear_geometry(&mesh);
         if (object.mode == OB_MODE_EDIT) {
@@ -232,9 +233,9 @@ static int run_node_group_exec(bContext *C, wmOperator *op)
     operator_eval_data.depsgraph = depsgraph;
     operator_eval_data.self_object = object;
 
-    GeometrySet geometry_orig = get_original_geometry_eval_copy(*object);
+    bke::GeometrySet geometry_orig = get_original_geometry_eval_copy(*object);
 
-    GeometrySet new_geometry = nodes::execute_geometry_nodes_on_geometry(
+    bke::GeometrySet new_geometry = nodes::execute_geometry_nodes_on_geometry(
         *node_tree,
         op->properties,
         compute_context,
