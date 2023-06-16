@@ -1261,11 +1261,11 @@ static void node_duplicate_reparent_recursive(bNodeTree *ntree,
   }
 }
 
-static void remap_pairing(bNodeTree &dst_tree, const Map<bNode *, bNode *> &node_map)
+void remap_node_pairing(bNodeTree &dst_tree, const Map<const bNode *, bNode *> &node_map)
 {
   /* We don't have the old tree for looking up output nodes by ID,
    * so we have to build a map first to find copied output nodes in the new tree. */
-  Map<uint32_t, bNode *> dst_output_node_map;
+  Map<int32_t, bNode *> dst_output_node_map;
   for (const auto &item : node_map.items()) {
     if (item.key->type == GEO_NODE_SIMULATION_OUTPUT) {
       dst_output_node_map.add_new(item.key->identifier, item.value);
@@ -1376,7 +1376,14 @@ static int node_duplicate_exec(bContext *C, wmOperator *op)
     }
   }
 
-  remap_pairing(*ntree, node_map);
+  {
+    /* Use temporary map that has const key, because that's what the function below expects. */
+    Map<const bNode *, bNode *> const_node_map;
+    for (const auto item : node_map.items()) {
+      const_node_map.add(item.key, item.value);
+    }
+    remap_node_pairing(*ntree, const_node_map);
+  }
 
   /* Deselect old nodes, select the copies instead. */
   for (const auto item : node_map.items()) {
@@ -2198,6 +2205,8 @@ static int ntree_socket_add_exec(bContext *C, wmOperator *op)
         ntree, in_out, active_sock->idname, active_sock->next, active_sock->name);
     /* XXX this only works for actual sockets, not interface templates! */
     // nodeSocketCopyValue(sock, &ntree_ptr, active_sock, &ntree_ptr);
+    /* Inherit socket panel from the active socket interface. */
+    sock->panel = active_sock->panel;
   }
   else {
     /* XXX TODO: define default socket type for a tree! */
@@ -2342,6 +2351,10 @@ static bool socket_change_poll_type(void *userdata, bNodeSocketType *socket_type
 
   /* Only use basic socket types for this enum. */
   if (socket_type->subtype != PROP_NONE) {
+    return false;
+  }
+
+  if (!U.experimental.use_rotation_socket && socket_type->type == SOCK_ROTATION) {
     return false;
   }
 
@@ -2588,6 +2601,8 @@ static int ntree_socket_move_exec(bContext *C, wmOperator *op)
       break;
     }
   }
+
+  ntreeEnsureSocketInterfacePanelOrder(ntree);
 
   BKE_ntree_update_tag_interface(ntree);
   ED_node_tree_propagate_change(C, CTX_data_main(C), ntree);

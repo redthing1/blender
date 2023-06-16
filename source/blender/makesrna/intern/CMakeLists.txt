@@ -30,9 +30,9 @@ set(DEFSRC
   rna_color.c
   rna_constraint.c
   rna_context.c
-  rna_curve.c
+  rna_curve.cc
   rna_curveprofile.c
-  rna_curves.c
+  rna_curves.cc
   rna_depsgraph.c
   rna_dynamicpaint.c
   rna_fcurve.c
@@ -54,8 +54,8 @@ set(DEFSRC
   rna_modifier.c
   rna_movieclip.c
   rna_nla.c
-  rna_nodetree.c
-  rna_object.c
+  rna_nodetree.cc
+  rna_object.cc
   rna_object_force.c
   rna_packedfile.c
   rna_palette.c
@@ -71,7 +71,7 @@ set(DEFSRC
   rna_sequencer.c
   rna_shader_fx.c
   rna_sound.c
-  rna_space.c
+  rna_space.cc
   rna_speaker.c
   rna_test.c
   rna_text.c
@@ -103,7 +103,7 @@ set(APISRC
   rna_animation_api.c
   rna_armature_api.c
   rna_camera_api.c
-  rna_curve_api.c
+  rna_curve_api.cc
   rna_fcurve_api.c
   rna_image_api.c
   rna_lattice_api.cc
@@ -111,12 +111,12 @@ set(APISRC
   rna_material_api.c
   rna_mesh_api.cc
   rna_meta_api.c
-  rna_object_api.c
+  rna_object_api.cc
   rna_pose_api.c
   rna_scene_api.c
   rna_sequencer_api.c
   rna_sound_api.c
-  rna_space_api.c
+  rna_space_api.cc
   rna_text_api.c
   rna_texture_api.c
   rna_ui_api.c
