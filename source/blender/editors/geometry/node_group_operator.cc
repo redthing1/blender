@@ -12,6 +12,7 @@
 
 #include "WM_api.h"
 
+#include "BKE_asset.h"
 #include "BKE_attribute_math.hh"
 #include "BKE_compute_contexts.hh"
 #include "BKE_context.h"
@@ -27,6 +28,7 @@
 #include "BKE_object.h"
 #include "BKE_pointcloud.h"
 #include "BKE_report.h"
+#include "BKE_screen.h"
 
 #include "DNA_object_types.h"
 #include "DNA_scene_types.h"
@@ -37,23 +39,34 @@
 #include "RNA_access.h"
 #include "RNA_define.h"
 #include "RNA_enum_types.h"
+#include "RNA_prototypes.h"
 
 #include "UI_interface.h"
 #include "UI_resources.h"
 
-#include "ED_asset_import.hh"
+#include "ED_asset.h"
 #include "ED_mesh.h"
+
+#include "BLT_translation.h"
 
 #include "FN_lazy_function_execute.hh"
 
 #include "NOD_geometry_nodes_execute.hh"
 #include "NOD_geometry_nodes_lazy_function.hh"
 
+#include "AS_asset_catalog.hh"
+#include "AS_asset_catalog_path.hh"
+#include "AS_asset_catalog_tree.hh"
+#include "AS_asset_library.hh"
 #include "AS_asset_representation.hh"
 
 #include "geometry_intern.hh"
 
 namespace blender::ed::geometry {
+
+/* -------------------------------------------------------------------- */
+/** \name Operator
+ * \{ */
 
 static const bNodeTree *get_node_group(const bContext &C)
 {
@@ -290,5 +303,318 @@ void GEOMETRY_OT_execute_node_group(wmOperatorType *ot)
 
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 }
+
+/** \} */
+
+/* -------------------------------------------------------------------- */
+/** \name Menu
+ * \{ */
+
+static bool asset_menu_poll(const bContext *C, MenuType * /*mt*/)
+{
+  return CTX_wm_view3d(C);
+}
+
+// TODO: SHOULD BE SHARED
+static void assets_listen_fn(const wmRegionListenerParams *params)
+{
+  const wmNotifier *wmn = params->notifier;
+  ARegion *region = params->region;
+
+  switch (wmn->category) {
+    case NC_ASSET:
+      if (wmn->data == ND_ASSET_LIST_READING) {
+        ED_region_tag_refresh_ui(region);
+      }
+      break;
+  }
+}
+
+struct AssetItemTree {
+  asset_system::AssetCatalogTree catalogs;
+  MultiValueMap<asset_system::AssetCatalogPath, asset_system::AssetRepresentation *>
+      assets_per_path;
+};
+
+static AssetItemTree &get_item_tree()
+{
+  static AssetItemTree tree;
+  return tree;
+}
+
+static bool all_loading_finished()
+{
+  AssetLibraryReference all_library_ref = asset_system::all_library_reference();
+  return ED_assetlist_is_loaded(&all_library_ref);
+}
+
+static asset_system::AssetLibrary *get_all_library_once_available()
+{
+  const AssetLibraryReference all_library_ref = asset_system::all_library_reference();
+  return ED_assetlist_library_get_once_available(all_library_ref);
+}
+
+/**
+ * The menus want to pass catalog paths to context and for this they need persistent pointers to
+ * the paths. Rather than keeping some local path storage, get a pointer into the asset system
+ * directly, which is persistent until the library is reloaded and can safely be held by context.
+ */
+// TODO: SHOULD BE SHARED
+static PointerRNA persistent_catalog_path_rna_pointer(
+    bScreen &owner_screen,
+    const asset_system::AssetLibrary &library,
+    const asset_system::AssetCatalogTreeItem &item)
+{
+  const asset_system::AssetCatalog *catalog = library.catalog_service->find_catalog_by_path(
+      item.catalog_path());
+  if (!catalog) {
+    return PointerRNA_NULL;
+  }
+
+  const asset_system::AssetCatalogPath &path = catalog->path;
+  return {&owner_screen.id,
+          &RNA_AssetCatalogPath,
+          const_cast<asset_system::AssetCatalogPath *>(&path)};
+}
+
+// TODO: SHOULD BE SHARED
+static PointerRNA create_asset_rna_ptr(const asset_system::AssetRepresentation *asset)
+{
+  PointerRNA ptr{};
+  ptr.owner_id = nullptr;
+  ptr.type = &RNA_AssetRepresentation;
+  ptr.data = const_cast<asset_system::AssetRepresentation *>(asset);
+}
+
+static AssetItemTree build_catalog_tree(const bContext &C)
+{
+
+  AssetFilterSettings type_filter{};
+  type_filter.id_types = FILTER_ID_NT;
+  AssetTag operator_tag;
+  STRNCPY(operator_tag.name, "edit_mode_operator");
+  BLI_addtail(&type_filter.tags, &operator_tag);
+
+  /* Find all the matching node group assets for every catalog path. */
+  MultiValueMap<asset_system::AssetCatalogPath, asset_system::AssetRepresentation *>
+      assets_per_path;
+
+  const AssetLibraryReference all_library_ref = asset_system::all_library_reference();
+
+  ED_assetlist_storage_fetch(&all_library_ref, &C);
+  ED_assetlist_ensure_previews_job(&all_library_ref, &C);
+
+  asset_system::AssetLibrary *all_library = get_all_library_once_available();
+  if (!all_library) {
+    return {};
+  }
+
+  ED_assetlist_iterate(all_library_ref, [&](asset_system::AssetRepresentation &asset) {
+    if (!ED_asset_filter_matches_asset(&type_filter, asset)) {
+      return true;
+    }
+    const AssetMetaData &meta_data = asset.get_metadata();
+    const IDProperty *tree_type = BKE_asset_metadata_idprop_find(&meta_data, "type");
+    if (tree_type == nullptr || IDP_Int(tree_type) != NTREE_GEOMETRY) {
+      return true;
+    }
+    if (BLI_uuid_is_nil(meta_data.catalog_id)) {
+      return true;
+    }
+
+    const asset_system::AssetCatalog *catalog = all_library->catalog_service->find_catalog(
+        meta_data.catalog_id);
+    if (catalog == nullptr) {
+      return true;
+    }
+    assets_per_path.add(catalog->path, &asset);
+    return true;
+  });
+
+  /* Build an own tree without any of the catalogs that don't have proper node group assets. */
+  asset_system::AssetCatalogTree catalogs_with_node_assets;
+  asset_system::AssetCatalogTree &catalog_tree = *all_library->catalog_service->get_catalog_tree();
+  catalog_tree.foreach_item([&](asset_system::AssetCatalogTreeItem &item) {
+    if (assets_per_path.lookup(item.catalog_path()).is_empty()) {
+      return;
+    }
+    asset_system::AssetCatalog *catalog = all_library->catalog_service->find_catalog(
+        item.get_catalog_id());
+    if (catalog == nullptr) {
+      return;
+    }
+    catalogs_with_node_assets.insert_item(*catalog);
+  });
+
+  return {std::move(catalogs_with_node_assets), std::move(assets_per_path)};
+}
+
+/**
+ * Avoid adding a separate root catalog when the assets have already been added to one of the
+ * builtin menus. The need to define the builtin menu labels here is non-ideal. We don't have
+ * any UI introspection that can do this though.
+ */
+Set<std::string> get_all_builtin_menus(const ObjectType object_type, const eObjectMode mode)
+{
+  Set<std::string> menus;
+  switch (object_type) {
+    case OB_CURVES:
+      menus.add_new("View");
+      menus.add_new("Select");
+      menus.add_new("Curves");
+      break;
+    case OB_MESH:
+      switch (mode) {
+        case OB_MODE_EDIT:
+          menus.add_new("View");
+          menus.add_new("Select");
+          menus.add_new("Add");
+          menus.add_new("Mesh");
+          menus.add_new("Vertex");
+          menus.add_new("Edge");
+          menus.add_new("Face");
+          menus.add_new("UV");
+          break;
+        case OB_MODE_SCULPT:
+          menus.add_new("View");
+          menus.add_new("Sculpt");
+          menus.add_new("Mask");
+          menus.add_new("Face Sets");
+          break;
+        case OB_MODE_VERTEX_PAINT:
+          menus.add_new("View");
+          menus.add_new("Paint");
+          break;
+        case OB_MODE_WEIGHT_PAINT:
+          menus.add_new("View");
+          menus.add_new("Weights");
+          break;
+      }
+  }
+  return menus;
+}
+
+static void node_add_catalog_assets_draw(const bContext *C, Menu *menu)
+{
+  bScreen &screen = *CTX_wm_screen(C);
+  AssetItemTree &tree = get_item_tree();
+  const PointerRNA menu_path_ptr = CTX_data_pointer_get(C, "asset_catalog_path");
+  if (RNA_pointer_is_null(&menu_path_ptr)) {
+    return;
+  }
+  const auto &menu_path = *static_cast<const asset_system::AssetCatalogPath *>(menu_path_ptr.data);
+  const Span<asset_system::AssetRepresentation *> assets = tree.assets_per_path.lookup(menu_path);
+  asset_system::AssetCatalogTreeItem *catalog_item = tree.catalogs.find_item(menu_path);
+  BLI_assert(catalog_item != nullptr);
+
+  if (assets.is_empty() && !catalog_item->has_children()) {
+    return;
+  }
+
+  uiLayout *layout = menu->layout;
+  uiItemS(layout);
+
+  for (const asset_system::AssetRepresentation *asset : assets) {
+    uiLayout *col = uiLayoutColumn(layout, false);
+    PointerRNA asset_ptr = create_asset_rna_ptr(asset);
+    uiLayoutSetContextPointer(col, "asset", &asset_ptr);
+    uiItemO(col, IFACE_(asset->get_name().c_str()), ICON_NONE, "GEOMETRY_OT_execute_node_group");
+  }
+
+  asset_system::AssetLibrary *all_library = get_all_library_once_available();
+  if (!all_library) {
+    return;
+  }
+
+  catalog_item->foreach_child([&](asset_system::AssetCatalogTreeItem &child_item) {
+    PointerRNA path_ptr = persistent_catalog_path_rna_pointer(screen, *all_library, child_item);
+    if (path_ptr.data != nullptr) {
+      return;
+    }
+    uiLayout *col = uiLayoutColumn(layout, false);
+    uiLayoutSetContextPointer(col, "asset_catalog_path", &path_ptr);
+    uiItemM(col,
+            "GEO_MT_node_operator_catalog_assets",
+            IFACE_(child_item.get_name().c_str()),
+            ICON_NONE);
+  });
+}
+
+MenuType add_catalog_assets_menu_type()
+{
+  MenuType type{};
+  STRNCPY(type.idname, "GEO_MT_node_operator_catalog_assets");
+  type.poll = asset_menu_poll;
+  type.draw = node_add_catalog_assets_draw;
+  type.listener = assets_listen_fn;
+  return type;
+}
+
+void ui_template_node_operator_asset_menu_items(bContext &C,
+                                                uiLayout &layout,
+                                                const StringRef catalog_path)
+{
+  bScreen &screen = *CTX_wm_screen(&C);
+  AssetItemTree &tree = get_item_tree();
+  const asset_system::AssetCatalogTreeItem *item = tree.catalogs.find_root_item(catalog_path);
+  if (!item) {
+    return;
+  }
+  asset_system::AssetLibrary *all_library = get_all_library_once_available();
+  if (!all_library) {
+    return;
+  }
+  PointerRNA path_ptr = persistent_catalog_path_rna_pointer(screen, *all_library, *item);
+  if (path_ptr.data == nullptr) {
+    return;
+  }
+  uiItemS(&layout);
+  uiLayout *col = uiLayoutColumn(&layout, false);
+  uiLayoutSetContextPointer(col, "asset_catalog_path", &path_ptr);
+  uiItemMContents(col, "GEO_MT_node_operator_catalog_assets");
+}
+
+void ui_template_node_operator_asset_root_items(bContext &C, uiLayout &layout)
+{
+  bScreen &screen = *CTX_wm_screen(&C);
+  const Object *active_object = CTX_data_active_object(&C);
+  if (!active_object) {
+    return;
+  }
+  AssetItemTree &tree = get_item_tree();
+  tree = build_catalog_tree(C);
+
+  const bool loading_finished = all_loading_finished();
+  if (tree.catalogs.is_empty() && loading_finished) {
+    return;
+  }
+  if (!loading_finished) {
+    uiItemL(&layout, IFACE_("Loading Asset Libraries"), ICON_INFO);
+  }
+
+  asset_system::AssetLibrary *all_library = get_all_library_once_available();
+  if (!all_library) {
+    return;
+  }
+
+  const Set<std::string> all_builtin_menus = get_all_builtin_menus(
+      ObjectType(active_object->type), eObjectMode(active_object->mode));
+
+  tree.catalogs.foreach_root_item([&](asset_system::AssetCatalogTreeItem &item) {
+    if (all_builtin_menus.contains(item.get_name())) {
+      return;
+    }
+    PointerRNA path_ptr = persistent_catalog_path_rna_pointer(screen, *all_library, item);
+    if (path_ptr.data == nullptr) {
+      return;
+    }
+    uiLayout *col = uiLayoutColumn(&layout, false);
+    uiLayoutSetContextPointer(col, "asset_catalog_path", &path_ptr);
+    const char *text = IFACE_(item.get_name().c_str());
+    uiItemM(col, "GEO_MT_node_operator_catalog_assets", text, ICON_NONE);
+  });
+}
+
+/** \} */
 
 }  // namespace blender::ed::geometry

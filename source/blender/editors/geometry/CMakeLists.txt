@@ -4,16 +4,21 @@
 
 set(INC
   ../include
+  ../../asset_system
   ../../blenkernel
   ../../blenlib
+  ../../blentranslation
   ../../depsgraph
   ../../functions
   ../../makesdna
   ../../makesrna
-    ../../nodes
+  ../../nodes
   ../../windowmanager
   ../../../../intern/guardedalloc
   ../../bmesh
+
+  # RNA_prototypes.h
+  ${CMAKE_BINARY_DIR}/source/blender/makesrna
 )
 
 set(INC_SYS
@@ -35,3 +40,6 @@ set(LIB
 )
 
 blender_add_lib(bf_editor_geometry "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
+
+# RNA_prototypes.h dna_type_offsets.h
+add_dependencies(bf_editor_geometry bf_rna)

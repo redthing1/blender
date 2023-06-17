@@ -53,23 +53,15 @@ struct AssetItemTree {
       assets_per_path;
 };
 
-static AssetLibraryReference all_library_reference()
-{
-  AssetLibraryReference all_library_ref{};
-  all_library_ref.custom_library_index = -1;
-  all_library_ref.type = ASSET_LIBRARY_ALL;
-  return all_library_ref;
-}
-
 static bool all_loading_finished()
 {
-  AssetLibraryReference all_library_ref = all_library_reference();
+  AssetLibraryReference all_library_ref = asset_system::all_library_reference();
   return ED_assetlist_is_loaded(&all_library_ref);
 }
 
 static asset_system::AssetLibrary *get_all_library_once_available()
 {
-  const AssetLibraryReference all_library_ref = all_library_reference();
+  const AssetLibraryReference all_library_ref = asset_system::all_library_reference();
   return ED_assetlist_library_get_once_available(all_library_ref);
 }
 
@@ -95,6 +87,14 @@ static PointerRNA persistent_catalog_path_rna_pointer(
           const_cast<asset_system::AssetCatalogPath *>(&path)};
 }
 
+static PointerRNA create_asset_rna_ptr(const asset_system::AssetRepresentation *asset)
+{
+  PointerRNA ptr{};
+  ptr.owner_id = nullptr;
+  ptr.type = &RNA_AssetRepresentation;
+  ptr.data = const_cast<asset_system::AssetRepresentation *>(asset);
+}
+
 static AssetItemTree build_catalog_tree(const bContext &C, const bNodeTree *node_tree)
 {
   if (!node_tree) {
@@ -108,7 +108,7 @@ static AssetItemTree build_catalog_tree(const bContext &C, const bNodeTree *node
   AssetFilterSettings type_filter{};
   type_filter.id_types = FILTER_ID_NT;
 
-  const AssetLibraryReference all_library_ref = all_library_reference();
+  const AssetLibraryReference all_library_ref = asset_system::all_library_reference();
 
   ED_assetlist_storage_fetch(&all_library_ref, &C);
   ED_assetlist_ensure_previews_job(&all_library_ref, &C);
@@ -192,11 +192,8 @@ static void node_add_catalog_assets_draw(const bContext *C, Menu *menu)
 
   for (const asset_system::AssetRepresentation *asset : assets) {
     uiLayout *col = uiLayoutColumn(layout, false);
-
-    PointerRNA asset_ptr{
-        nullptr, &RNA_AssetRepresentation, const_cast<asset_system::AssetRepresentation *>(asset)};
+    PointerRNA asset_ptr = create_asset_rna_ptr(asset);
     uiLayoutSetContextPointer(col, "asset", &asset_ptr);
-
     uiItemO(col, IFACE_(asset->get_name().c_str()), ICON_NONE, "NODE_OT_add_group_asset");
   }
 
@@ -316,34 +313,28 @@ MenuType add_root_catalogs_menu_type()
 
 }  // namespace blender::ed::space_node
 
-/* Note: This is only necessary because Python can't set an asset catalog path context item. */
 void uiTemplateNodeAssetMenuItems(uiLayout *layout, bContext *C, const char *catalog_path)
 {
   using namespace blender;
   using namespace blender::ed::space_node;
   bScreen &screen = *CTX_wm_screen(C);
   SpaceNode &snode = *CTX_wm_space_node(C);
-
   if (snode.runtime->assets_for_menu == nullptr) {
     return;
   }
-
   AssetItemTree &tree = *snode.runtime->assets_for_menu;
   const asset_system::AssetCatalogTreeItem *item = tree.catalogs.find_root_item(catalog_path);
   if (!item) {
     return;
   }
-
   asset_system::AssetLibrary *all_library = get_all_library_once_available();
   if (!all_library) {
     return;
   }
-
   PointerRNA path_ptr = persistent_catalog_path_rna_pointer(screen, *all_library, *item);
   if (path_ptr.data == nullptr) {
     return;
   }
-
   uiItemS(layout);
   uiLayout *col = uiLayoutColumn(layout, false);
   uiLayoutSetContextPointer(col, "asset_catalog_path", &path_ptr);

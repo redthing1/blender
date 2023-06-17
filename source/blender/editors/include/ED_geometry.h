@@ -34,3 +34,16 @@ bool ED_geometry_attribute_convert(struct Mesh *mesh,
 #ifdef __cplusplus
 }
 #endif
+
+#ifdef __cplusplus
+
+namespace blender::ed::geometry {
+
+void ui_template_node_operator_asset_menu_items(bContext &C,
+                                                uiLayout &layout,
+                                                const StringRef catalog_path);
+void ui_template_node_operator_asset_root_items(bContext &C, uiLayout &layout);
+
+}  // namespace blender::ed::geometry
+
+#endif

@@ -1792,6 +1792,15 @@ void RNA_api_ui_layout(StructRNA *srna)
   RNA_def_function_flag(func, FUNC_USE_CONTEXT);
   parm = RNA_def_string(func, "catalog_path", NULL, 0, "", "");
 
+  func = RNA_def_function(
+      srna, "template_node_operator_asset_menu_items", "uiTemplateNodeOperatorAssetMenuItems");
+  RNA_def_function_flag(func, FUNC_USE_CONTEXT);
+  parm = RNA_def_string(func, "catalog_path", NULL, 0, "", "");
+
+  func = RNA_def_function(
+      srna, "template_node_operator_root_items", "uiTemplateNodeOperatorAssetMenuItems");
+  RNA_def_function_flag(func, FUNC_USE_CONTEXT);
+
   func = RNA_def_function(srna, "template_texture_user", "uiTemplateTextureUser");
   RNA_def_function_flag(func, FUNC_USE_CONTEXT);
 
