@@ -21,7 +21,10 @@
 
 #include "RNA_define.h"
 
+#include "AS_asset_library.hh"
+
 #include "ED_asset_library.h"
+#include "ED_asset_list.hh"
 
 int ED_asset_library_reference_to_enum_value(const AssetLibraryReference *library)
 {
@@ -127,3 +130,13 @@ const EnumPropertyItem *ED_asset_library_reference_to_rna_enum_itemf(const bool 
   RNA_enum_item_end(&item, &totitem);
   return item;
 }
+
+namespace blender::ed::asset {
+
+asset_system::AssetLibrary *get_all_library_once_available()
+{
+  const AssetLibraryReference all_library_ref = asset_system::all_library_reference();
+  return ED_assetlist_library_get_once_available(all_library_ref);
+}
+
+}  // namespace blender::ed::asset

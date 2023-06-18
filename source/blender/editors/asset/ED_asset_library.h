@@ -42,3 +42,13 @@ const struct EnumPropertyItem *ED_asset_library_reference_to_rna_enum_itemf(
 #ifdef __cplusplus
 }
 #endif
+
+#ifdef __cplusplus
+
+namespace blender::ed::asset {
+
+asset_system::AssetLibrary *get_all_library_once_available();
+
+}  // namespace blender::ed::asset
+
+#endif

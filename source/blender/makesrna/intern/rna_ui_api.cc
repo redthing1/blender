@@ -1824,7 +1824,7 @@ void RNA_api_ui_layout(StructRNA *srna)
                           "template_node_operator_asset_menu_items",
                           "rna_uiLayout_template_node_operator_asset_menu_items");
   RNA_def_function_flag(func, FUNC_USE_CONTEXT);
-  parm = RNA_def_string(func, "catalog_path", NULL, 0, "", "");
+  parm = RNA_def_string(func, "catalog_path", nullptr, 0, "", "");
 
   func = RNA_def_function(srna,
                           "template_node_operator_asset_root_items",

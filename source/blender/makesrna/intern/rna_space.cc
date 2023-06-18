@@ -7432,7 +7432,7 @@ static void rna_def_space_node(BlenderRNA *brna)
   static const EnumPropertyItem geometry_nodes_type_items[] = {
       {SNODE_GEOMETRY_MODIFIER, "MODIFIER", 0, "Modifier", ""},
       {SNODE_GEOMETRY_OPERATOR, "OPERATOR", 0, "Operator", ""},
-      {0, NULL, 0, NULL, NULL},
+      {0, nullptr, 0, nullptr, nullptr},
   };
 
   static const EnumPropertyItem backdrop_channels_items[] = {

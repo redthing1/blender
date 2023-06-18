@@ -10,7 +10,14 @@
 
 #pragma once
 
+#include "BLI_function_ref.hh"
+#include "BLI_multi_value_map.hh"
+
+#include "AS_asset_catalog_path.hh"
+#include "AS_asset_catalog_tree.hh"
+
 struct AssetFilterSettings;
+struct bContext;
 
 namespace blender::asset_system {
 class AssetRepresentation;
@@ -30,3 +37,18 @@ class AssetRepresentation;
  */
 bool ED_asset_filter_matches_asset(const AssetFilterSettings *filter,
                                    const blender::asset_system::AssetRepresentation &asset);
+
+namespace blender::ed::asset {
+
+struct AssetItemTree {
+  asset_system::AssetCatalogTree catalogs;
+  MultiValueMap<asset_system::AssetCatalogPath, asset_system::AssetRepresentation *>
+      assets_per_path;
+};
+
+AssetItemTree build_filtered_all_catalog_tree(
+    const bContext &C,
+    const AssetFilterSettings &filter_settings,
+    FunctionRef<bool(const AssetMetaData &)> meta_data_filter);
+
+}  // namespace blender::ed::asset
