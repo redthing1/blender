@@ -39,26 +39,3 @@ ID *ED_asset_get_local_id_from_asset_or_append_and_reuse(
                                       BLO_LIBLINK_APPEND_ASSET_DATA_CLEAR |
                                       BLO_LIBLINK_APPEND_LOCAL_ID_REUSE);
 }
-
-ID *ED_asset_get_local_id_from_asset_or_link(Main *bmain,
-                                             const asset_system::AssetRepresentation &asset,
-                                             ID_Type idtype)
-{
-  if (ID *local_id = asset.local_id()) {
-    return local_id;
-  }
-
-  std::string blend_path = asset.get_identifier().full_library_path();
-  if (blend_path.empty()) {
-    return nullptr;
-  }
-
-  return WM_file_link_datablock(bmain,
-                                nullptr,
-                                nullptr,
-                                nullptr,
-                                blend_path.c_str(),
-                                idtype,
-                                asset.get_name().c_str(),
-                                BLO_LIBLINK_APPEND_LOCAL_ID_REUSE);
-}

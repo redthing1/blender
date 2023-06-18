@@ -93,6 +93,7 @@ static PointerRNA create_asset_rna_ptr(const asset_system::AssetRepresentation *
   ptr.owner_id = nullptr;
   ptr.type = &RNA_AssetRepresentation;
   ptr.data = const_cast<asset_system::AssetRepresentation *>(asset);
+  return ptr;
 }
 
 static AssetItemTree build_catalog_tree(const bContext &C, const bNodeTree *node_tree)

@@ -45,6 +45,7 @@
 #include "UI_resources.h"
 
 #include "ED_asset.h"
+#include "ED_geometry.h"
 #include "ED_mesh.h"
 
 #include "BLT_translation.h"
@@ -68,19 +69,19 @@ namespace blender::ed::geometry {
 /** \name Operator
  * \{ */
 
+static const asset_system::AssetRepresentation *get_context_asset(const bContext &C)
+{
+  return reinterpret_cast<const asset_system::AssetRepresentation *>(CTX_wm_asset(&C));
+}
+
 static const bNodeTree *get_node_group(const bContext &C)
 {
-  const AssetLibraryReference *library_ref = CTX_wm_asset_library_ref(&C);
-  if (!library_ref) {
+  const asset_system::AssetRepresentation *asset = get_context_asset(C);
+  if (!asset) {
     return nullptr;
   }
-  const AssetRepresentation *c_asset = CTX_wm_asset(&C);
-  if (!c_asset) {
-    return nullptr;
-  }
-  auto &asset = reinterpret_cast<const asset_system::AssetRepresentation &>(c_asset);
   bNodeTree *node_group = reinterpret_cast<bNodeTree *>(
-      ED_asset_get_local_id_from_asset_or_link(CTX_data_main(&C), asset, ID_NT));
+      ED_asset_get_local_id_from_asset_or_append_and_reuse(CTX_data_main(&C), *asset, ID_NT));
   if (!node_group) {
     return nullptr;
   }
@@ -282,13 +283,19 @@ static int run_node_group_invoke(bContext *C, wmOperator *op, const wmEvent * /*
   return run_node_group_exec(C, op);
 }
 
-static char *run_node_group_get_description(bContext *C, wmOperatorType * /*ot*/, PointerRNA *ptr)
+static char *run_node_group_get_description(bContext *C,
+                                            wmOperatorType * /*ot*/,
+                                            PointerRNA * /*ptr*/)
 {
-  const bNodeTree *node_tree = get_node_group(*C);
-  if (!node_tree) {
+  const asset_system::AssetRepresentation *asset = get_context_asset(*C);
+  if (!asset) {
     return nullptr;
   }
-  return nullptr;
+  const char *description = asset->get_metadata().description;
+  if (!description) {
+    return nullptr;
+  }
+  return BLI_strdup(description);
 }
 
 void GEOMETRY_OT_execute_node_group(wmOperatorType *ot)
@@ -384,6 +391,7 @@ static PointerRNA create_asset_rna_ptr(const asset_system::AssetRepresentation *
   ptr.owner_id = nullptr;
   ptr.type = &RNA_AssetRepresentation;
   ptr.data = const_cast<asset_system::AssetRepresentation *>(asset);
+  return ptr;
 }
 
 static AssetItemTree build_catalog_tree(const bContext &C)
@@ -454,7 +462,7 @@ static AssetItemTree build_catalog_tree(const bContext &C)
  * builtin menus. The need to define the builtin menu labels here is non-ideal. We don't have
  * any UI introspection that can do this though.
  */
-Set<std::string> get_all_builtin_menus(const ObjectType object_type, const eObjectMode mode)
+static Set<std::string> get_builtin_menus(const ObjectType object_type, const eObjectMode mode)
 {
   Set<std::string> menus;
   switch (object_type) {
@@ -489,7 +497,11 @@ Set<std::string> get_all_builtin_menus(const ObjectType object_type, const eObje
           menus.add_new("View");
           menus.add_new("Weights");
           break;
+        default:
+          break;
       }
+    default:
+      break;
   }
   return menus;
 }
@@ -540,7 +552,7 @@ static void node_add_catalog_assets_draw(const bContext *C, Menu *menu)
   });
 }
 
-MenuType add_catalog_assets_menu_type()
+MenuType node_group_operator_assets_menu()
 {
   MenuType type{};
   STRNCPY(type.idname, "GEO_MT_node_operator_catalog_assets");
@@ -550,8 +562,8 @@ MenuType add_catalog_assets_menu_type()
   return type;
 }
 
-void ui_template_node_operator_asset_menu_items(bContext &C,
-                                                uiLayout &layout,
+void ui_template_node_operator_asset_menu_items(uiLayout &layout,
+                                                bContext &C,
                                                 const StringRef catalog_path)
 {
   bScreen &screen = *CTX_wm_screen(&C);
@@ -574,7 +586,7 @@ void ui_template_node_operator_asset_menu_items(bContext &C,
   uiItemMContents(col, "GEO_MT_node_operator_catalog_assets");
 }
 
-void ui_template_node_operator_asset_root_items(bContext &C, uiLayout &layout)
+void ui_template_node_operator_asset_root_items(uiLayout &layout, bContext &C)
 {
   bScreen &screen = *CTX_wm_screen(&C);
   const Object *active_object = CTX_data_active_object(&C);
@@ -597,11 +609,11 @@ void ui_template_node_operator_asset_root_items(bContext &C, uiLayout &layout)
     return;
   }
 
-  const Set<std::string> all_builtin_menus = get_all_builtin_menus(
-      ObjectType(active_object->type), eObjectMode(active_object->mode));
+  const Set<std::string> builtin_menus = get_builtin_menus(ObjectType(active_object->type),
+                                                           eObjectMode(active_object->mode));
 
   tree.catalogs.foreach_root_item([&](asset_system::AssetCatalogTreeItem &item) {
-    if (all_builtin_menus.contains(item.get_name())) {
+    if (builtin_menus.contains(item.get_name())) {
       return;
     }
     PointerRNA path_ptr = persistent_catalog_path_rna_pointer(screen, *all_library, item);

@@ -18,5 +18,3 @@ class AssetRepresentation;
 
 struct ID *ED_asset_get_local_id_from_asset_or_append_and_reuse(
     Main *bmain, const blender::asset_system::AssetRepresentation &asset, ID_Type idtype);
-struct ID *ED_asset_get_local_id_from_asset_or_link(
-    Main *bmain, const blender::asset_system::AssetRepresentation &asset, ID_Type idtype);

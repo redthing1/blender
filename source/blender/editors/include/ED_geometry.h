@@ -8,8 +8,14 @@
 
 #pragma once
 
-#include "BKE_attribute.h"
 #include "DNA_customdata_types.h"
+
+#include "BKE_attribute.h"
+#include "BKE_screen.h"
+
+#ifdef __cplusplus
+#  include "BLI_string_ref.hh"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +45,12 @@ bool ED_geometry_attribute_convert(struct Mesh *mesh,
 
 namespace blender::ed::geometry {
 
-void ui_template_node_operator_asset_menu_items(bContext &C,
-                                                uiLayout &layout,
-                                                const StringRef catalog_path);
-void ui_template_node_operator_asset_root_items(bContext &C, uiLayout &layout);
+MenuType node_group_operator_assets_menu();
+
+void ui_template_node_operator_asset_menu_items(uiLayout &layout,
+                                                bContext &C,
+                                                StringRef catalog_path);
+void ui_template_node_operator_asset_root_items(uiLayout &layout, bContext &C);
 
 }  // namespace blender::ed::geometry
 

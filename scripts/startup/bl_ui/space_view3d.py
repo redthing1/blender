@@ -1014,6 +1014,9 @@ class VIEW3D_MT_editor_menus(Menu):
         else:
             layout.menu("VIEW3D_MT_object")
 
+        layout.template_node_operator_asset_root_items()
+
+
 
 # ********** Menu **********
 
@@ -2129,6 +2132,8 @@ class VIEW3D_MT_select_edit_curves(Menu):
 
         layout.menu("VIEW3D_MT_edit_curves_select_more_less")
 
+        layout.template_node_operator_asset_menu_items(catalog_path="Select")
+
 
 class VIEW3D_MT_select_sculpt_curves(Menu):
     bl_label = "Select"
@@ -2142,6 +2147,8 @@ class VIEW3D_MT_select_sculpt_curves(Menu):
         layout.operator("sculpt_curves.select_random", text="Random")
         layout.operator("curves.select_ends", text="Endpoints")
         layout.operator("sculpt_curves.select_grow", text="Grow")
+
+        layout.template_node_operator_asset_menu_items(catalog_path="Select")
 
 
 class VIEW3D_MT_mesh_add(Menu):
@@ -3397,6 +3404,8 @@ class VIEW3D_MT_sculpt_curves(Menu):
         layout.operator("curves.snap_curves_to_surface", text="Snap to Nearest Surface").attach_mode = 'NEAREST'
         layout.separator()
         layout.operator("curves.convert_to_particle_system", text="Convert to Particle System")
+
+        layout.template_node_operator_asset_menu_items(catalog_path="Curves")
 
 
 class VIEW3D_MT_mask(Menu):
@@ -5488,10 +5497,7 @@ class VIEW3D_MT_edit_curves(Menu):
         layout.separator()
         layout.operator("curves.delete")
 
-        layout.separator()
-        for group in bpy.data.node_groups:
-            layout.operator("geometry.execute_node_group", text=group.name).name = group.name
-
+        layout.template_node_operator_asset_menu_items(catalog_path="Curves")
 
 class VIEW3D_MT_object_mode_pie(Menu):
     bl_label = "Mode"
