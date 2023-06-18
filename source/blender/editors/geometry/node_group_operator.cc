@@ -394,6 +394,7 @@ static PointerRNA create_asset_rna_ptr(const asset_system::AssetRepresentation *
   return ptr;
 }
 
+// TODO: SHOULD BE SHARED, AT LEAST GENERALIZED
 static AssetItemTree build_catalog_tree(const bContext &C)
 {
 
@@ -540,7 +541,7 @@ static void node_add_catalog_assets_draw(const bContext *C, Menu *menu)
 
   catalog_item->foreach_child([&](asset_system::AssetCatalogTreeItem &child_item) {
     PointerRNA path_ptr = persistent_catalog_path_rna_pointer(screen, *all_library, child_item);
-    if (path_ptr.data != nullptr) {
+    if (path_ptr.data == nullptr) {
       return;
     }
     uiLayout *col = uiLayoutColumn(layout, false);
