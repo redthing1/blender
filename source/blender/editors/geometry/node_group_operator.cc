@@ -388,7 +388,7 @@ static asset::AssetItemTree build_catalog_tree(const bContext &C)
   AssetFilterSettings type_filter{};
   type_filter.id_types = FILTER_ID_NT;
   AssetTag operator_tag;
-  STRNCPY(operator_tag.name, "edit_mode_operator");
+  STRNCPY(operator_tag.name, "Operator");
   BLI_addtail(&type_filter.tags, &operator_tag);
   auto meta_data_filter = [&](const AssetMetaData &meta_data) {
     const IDProperty *tree_type = BKE_asset_metadata_idprop_find(&meta_data, "type");
