@@ -1010,12 +1010,10 @@ class VIEW3D_MT_editor_menus(Menu):
             if mode_string == 'SCULPT_CURVES':
                 layout.menu("VIEW3D_MT_select_sculpt_curves")
                 layout.menu("VIEW3D_MT_sculpt_curves")
+                layout.template_node_operator_asset_root_items()
 
         else:
             layout.menu("VIEW3D_MT_object")
-
-        layout.template_node_operator_asset_root_items()
-
 
 
 # ********** Menu **********
@@ -2132,8 +2130,6 @@ class VIEW3D_MT_select_edit_curves(Menu):
         layout.separator()
 
         layout.menu("VIEW3D_MT_edit_curves_select_more_less")
-
-        layout.template_node_operator_asset_menu_items(catalog_path="Select")
 
 
 class VIEW3D_MT_select_sculpt_curves(Menu):
@@ -5498,7 +5494,6 @@ class VIEW3D_MT_edit_curves(Menu):
         layout.separator()
         layout.operator("curves.delete")
 
-        layout.template_node_operator_asset_menu_items(catalog_path="Curves")
 
 class VIEW3D_MT_object_mode_pie(Menu):
     bl_label = "Mode"
