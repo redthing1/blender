@@ -382,7 +382,6 @@ static PointerRNA create_asset_rna_ptr(const asset_system::AssetRepresentation *
   return ptr;
 }
 
-// TODO: SHOULD BE SHARED, AT LEAST GENERALIZED
 static asset::AssetItemTree build_catalog_tree(const bContext &C)
 {
   AssetFilterSettings type_filter{};
