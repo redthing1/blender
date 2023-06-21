@@ -599,7 +599,8 @@ template<typename T> class MutableSpan {
 
   constexpr T &operator[](const int64_t index) const
   {
-    BLI_assert(index < this->size());
+    BLI_assert(index >= 0);
+    BLI_assert(index < size_);
     return data_[index];
   }
 
@@ -743,6 +744,15 @@ template<typename T> class MutableSpan {
       }
     }
     return counter;
+  }
+
+  /**
+   * Does a constant time check to see if the pointer points to a value in the referenced array.
+   * Return true if it is, otherwise false.
+   */
+  constexpr bool contains_ptr(const T *ptr) const
+  {
+    return (this->begin() <= ptr) && (ptr < this->end());
   }
 
   /**
