@@ -629,7 +629,8 @@ static int animsys_quaternion_evaluate_fcurves(PathResolvedRNA quat_rna,
 
   int fcurve_offset = 0;
   for (; fcurve_offset < 4 && quat_curve_fcu;
-       ++fcurve_offset, quat_curve_fcu = quat_curve_fcu->next) {
+       ++fcurve_offset, quat_curve_fcu = quat_curve_fcu->next)
+  {
     if (!STREQ(quat_curve_fcu->rna_path, first_fcurve->rna_path)) {
       /* This should never happen when the quaternion is fully keyed. Some
        * people do use half-keyed quaternions, though, so better to check. */
@@ -989,8 +990,23 @@ NlaEvalStrip *nlastrips_ctime_get_strip(ListBase *list,
   /* loop over strips, checking if they fall within the range */
   for (strip = strips->first; strip; strip = strip->next) {
     /* Check if current time occurs within this strip. */
-    if (IN_RANGE_INCL(ctime, strip->start, strip->end) ||
-        (strip->flag & NLASTRIP_FLAG_NO_TIME_MAP)) {
+
+    /* This block leads to the Action Track and non-time-remapped tweak strip evaluation to respect
+     * the extrapolation modes. If in_range, these two tracks will always output NES_TIME_WITHIN so
+     * fcurve extrapolation isn't clamped to the keyframe bounds. */
+    bool in_range = IN_RANGE_INCL(ctime, strip->start, strip->end);
+    if (strip->flag & NLASTRIP_FLAG_NO_TIME_MAP) {
+      switch (strip->extendmode) {
+        case NLASTRIP_EXTEND_HOLD:
+          in_range = true;
+          break;
+        case NLASTRIP_EXTEND_HOLD_FORWARD:
+          in_range = ctime >= strip->start;
+          break;
+      }
+    }
+
+    if (in_range) {
       /* this strip is active, so try to use it */
       estrip = strip;
       side = NES_TIME_WITHIN;
@@ -3247,16 +3263,13 @@ static void animsys_create_action_track_strip(const AnimData *adt,
   r_action_strip->extendmode = adt->act_extendmode;
   r_action_strip->influence = adt->act_influence;
 
-  /* NOTE: must set this, or else the default setting overrides,
-   * and this setting doesn't work. */
+  /* Must set NLASTRIP_FLAG_USR_INFLUENCE, or else the default setting overrides, and influence
+   * doesn't work.
+   *
+   * Must set NLASTRIP_FLAG_NO_TIME_MAP, so Action Track fcurve evaluation extends beyond its
+   * keyframe bounds.
+   * */
   r_action_strip->flag |= NLASTRIP_FLAG_USR_INFLUENCE;
-
-  /* Unless `extendmode` is Nothing (might be useful for flattening NLA evaluation), disable range.
-   * Extend-mode Nothing and Hold will behave as normal. Hold Forward will behave just like Hold.
-   */
-  if (r_action_strip->extendmode != NLASTRIP_EXTEND_NOTHING) {
-    r_action_strip->flag |= NLASTRIP_FLAG_NO_TIME_MAP;
-  }
 
   const bool tweaking = (adt->flag & ADT_NLA_EDIT_ON) != 0;
   const bool soloing = (adt->flag & ADT_NLA_SOLO_TRACK) != 0;
